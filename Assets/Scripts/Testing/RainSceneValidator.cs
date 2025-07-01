@@ -180,7 +180,7 @@ namespace VRBoxingGame.Testing
         }
         
         [ContextMenu("Test Rain Scene Loading")]
-        public async void TestRainSceneLoading()
+        public async Task TestRainSceneLoading()
         {
             Debug.Log("🌧️ Testing Rain Scene Loading...");
             

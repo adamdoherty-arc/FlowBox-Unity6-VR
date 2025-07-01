@@ -170,7 +170,7 @@ namespace VRBoxingGame.Environment
         /// <summary>
         /// Load scene by index (for UI buttons) 
         /// </summary>
-        public async void LoadScene(int sceneIndex)
+        public async Task LoadScene(int sceneIndex)
         {
             if (sceneIndex >= 0 && sceneIndex < Enum.GetValues(typeof(SceneType)).Length)
             {
