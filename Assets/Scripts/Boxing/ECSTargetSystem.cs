@@ -109,14 +109,20 @@ namespace VRBoxingGame.Boxing.ECS
         
         private void CreateEntityPrefabs()
         {
-            // Convert prefabs to entities
+            // Convert prefabs to entities using Unity 6 approach
             if (whiteTargetPrefab != null)
             {
-                whiteTargetEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(
-                    whiteTargetPrefab, GameObjectConversionSettings.FromWorld(targetWorld, null));
+                // Create entity archetype
+                var archetype = entityManager.CreateArchetype(
+                    typeof(TargetComponent),
+                    typeof(LocalTransform),
+                    typeof(TargetMovementComponent)
+                );
+                
+                whiteTargetEntity = entityManager.CreateEntity(archetype);
                 
                 // Add ECS components
-                entityManager.AddComponentData(whiteTargetEntity, new TargetComponent
+                entityManager.SetComponentData(whiteTargetEntity, new TargetComponent
                 {
                     targetType = TargetType.White,
                     spawnTime = 0f,
@@ -124,14 +130,26 @@ namespace VRBoxingGame.Boxing.ECS
                     isHit = false,
                     score = 100
                 });
+                
+                entityManager.SetComponentData(whiteTargetEntity, new LocalTransform
+                {
+                    Position = float3.zero,
+                    Rotation = quaternion.identity,
+                    Scale = 1f
+                });
             }
             
             if (grayTargetPrefab != null)
             {
-                grayTargetEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(
-                    grayTargetPrefab, GameObjectConversionSettings.FromWorld(targetWorld, null));
+                var archetype = entityManager.CreateArchetype(
+                    typeof(TargetComponent),
+                    typeof(LocalTransform),
+                    typeof(TargetMovementComponent)
+                );
                 
-                entityManager.AddComponentData(grayTargetEntity, new TargetComponent
+                grayTargetEntity = entityManager.CreateEntity(archetype);
+                
+                entityManager.SetComponentData(grayTargetEntity, new TargetComponent
                 {
                     targetType = TargetType.Gray,
                     spawnTime = 0f,
@@ -139,20 +157,39 @@ namespace VRBoxingGame.Boxing.ECS
                     isHit = false,
                     score = 100
                 });
+                
+                entityManager.SetComponentData(grayTargetEntity, new LocalTransform
+                {
+                    Position = float3.zero,
+                    Rotation = quaternion.identity,
+                    Scale = 1f
+                });
             }
             
             if (blockTargetPrefab != null)
             {
-                blockTargetEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(
-                    blockTargetPrefab, GameObjectConversionSettings.FromWorld(targetWorld, null));
+                var archetype = entityManager.CreateArchetype(
+                    typeof(TargetComponent),
+                    typeof(LocalTransform),
+                    typeof(TargetMovementComponent)
+                );
                 
-                entityManager.AddComponentData(blockTargetEntity, new TargetComponent
+                blockTargetEntity = entityManager.CreateEntity(archetype);
+                
+                entityManager.SetComponentData(blockTargetEntity, new TargetComponent
                 {
                     targetType = TargetType.Block,
                     spawnTime = 0f,
                     lifetime = targetLifetime * 1.5f,
                     isHit = false,
                     score = 200
+                });
+                
+                entityManager.SetComponentData(blockTargetEntity, new LocalTransform
+                {
+                    Position = float3.zero,
+                    Rotation = quaternion.identity,
+                    Scale = 1f
                 });
             }
         }

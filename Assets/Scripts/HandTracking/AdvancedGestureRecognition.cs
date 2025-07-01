@@ -344,11 +344,14 @@ namespace VRBoxingGame.HandTracking
             defensiveAnalysisJobHandle = defensiveGestureJob.Schedule();
             
             // Wait for completion
-            await Task.Run(() =>
+            while (!gestureAnalysisJobHandle.IsCompleted || !defensiveAnalysisJobHandle.IsCompleted)
             {
-                gestureAnalysisJobHandle.Complete();
-                defensiveAnalysisJobHandle.Complete();
-            });
+                await Task.Yield();
+            }
+            
+            // Complete jobs safely
+            gestureAnalysisJobHandle.Complete();
+            defensiveAnalysisJobHandle.Complete();
             
             // Process results
             ProcessGestureResults();

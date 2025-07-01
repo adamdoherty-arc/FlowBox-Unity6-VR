@@ -355,10 +355,18 @@ namespace VRBoxingGame.Performance
         
         private async Task<bool> IsPerformanceImprovedAsync()
         {
-            // Wait for performance to stabilize
-            await Task.Delay(500);
-            
-            return currentMetrics.frameRate >= targetFrameRate * lowPerformanceThreshold;
+            try
+            {
+                // Wait for performance to stabilize
+                await Task.Delay(500);
+                
+                return currentMetrics.frameRate >= targetFrameRate * lowPerformanceThreshold;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error in performance check: {ex.Message}");
+                return false;
+            }
         }
         
         private OptimizationState GetCurrentOptimizationState()

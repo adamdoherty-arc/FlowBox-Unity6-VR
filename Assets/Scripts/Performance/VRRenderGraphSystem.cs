@@ -438,7 +438,12 @@ namespace VRBoxingGame.Performance
             
             performanceAnalysisJobHandle = analysisJob.Schedule();
             
-            await Task.Run(() => performanceAnalysisJobHandle.Complete());
+            // Wait for job completion asynchronously
+            while (!performanceAnalysisJobHandle.IsCompleted)
+            {
+                await Task.Yield();
+            }
+            performanceAnalysisJobHandle.Complete();
             
             // Get ML prediction
             var prediction = await performancePredictor.PredictPerformanceAsync(currentRenderStats);

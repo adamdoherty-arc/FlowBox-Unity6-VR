@@ -1,166 +1,151 @@
 using UnityEngine;
-using UnityEngine.XR;
+using Unity.XR.CoreUtils;
 
 namespace VRBoxingGame.Core
 {
     /// <summary>
-    /// VR-compatible camera helper that replaces Camera.main usage
-    /// Automatically finds the proper XR camera for VR environments
+    /// VR Camera Helper - Centralized VR camera management to reduce FindObjectOfType calls
     /// </summary>
-    public static class VRCameraHelper
+    public class VRCameraHelper : MonoBehaviour
     {
-        private static Camera cachedCamera;
-        private static Transform cachedTransform;
-        private static bool hasCheckedForCamera = false;
-
-        /// <summary>
-        /// Gets the active VR camera (replaces Camera.main)
-        /// </summary>
-        public static Camera ActiveCamera
+        private static VRCameraHelper instance;
+        private Camera activeCamera;
+        private Transform activeCameraTransform;
+        private XROrigin xrOrigin;
+        private Transform playerTransform;
+        
+        // Cached references
+        public static Camera ActiveCamera => Instance?.activeCamera;
+        public static Transform ActiveCameraTransform => Instance?.activeCameraTransform;
+        public static Vector3 PlayerPosition => Instance?.playerTransform?.position ?? Vector3.zero;
+        public static Vector3 PlayerForward => Instance?.activeCameraTransform?.forward ?? Vector3.forward;
+        public static XROrigin XROrigin => Instance?.xrOrigin;
+        
+        public static VRCameraHelper Instance
         {
             get
             {
-                if (cachedCamera == null || !hasCheckedForCamera)
+                if (instance == null)
                 {
-                    RefreshCameraCache();
-                }
-                return cachedCamera;
-            }
-        }
-
-        /// <summary>
-        /// Gets the active VR camera transform (replaces Camera.main.transform)
-        /// </summary>
-        public static Transform ActiveCameraTransform
-        {
-            get
-            {
-                if (cachedTransform == null || !hasCheckedForCamera)
-                {
-                    RefreshCameraCache();
-                }
-                return cachedTransform;
-            }
-        }
-
-        /// <summary>
-        /// Gets the player's head position in VR
-        /// </summary>
-        public static Vector3 PlayerPosition
-        {
-            get
-            {
-                var camera = ActiveCamera;
-                return camera != null ? camera.transform.position : Vector3.zero;
-            }
-        }
-
-        /// <summary>
-        /// Gets the player's look direction in VR
-        /// </summary>
-        public static Vector3 PlayerForward
-        {
-            get
-            {
-                var camera = ActiveCamera;
-                return camera != null ? camera.transform.forward : Vector3.forward;
-            }
-        }
-
-        /// <summary>
-        /// Refreshes the camera cache - call when cameras might have changed
-        /// </summary>
-        public static void RefreshCameraCache()
-        {
-            hasCheckedForCamera = true;
-            cachedCamera = null;
-            cachedTransform = null;
-
-            // Priority 1: Find XR camera
-            if (XRSettings.enabled)
-            {
-                // Look for XR Origin camera
-                var xrOrigin = Object.FindObjectOfType<UnityEngine.XR.XROrigin>();
-                if (xrOrigin != null && xrOrigin.Camera != null)
-                {
-                    cachedCamera = xrOrigin.Camera;
-                    cachedTransform = cachedCamera.transform;
-                    return;
-                }
-
-                // Look for camera with XR device tracking
-                Camera[] cameras = Object.FindObjectsOfType<Camera>();
-                foreach (var cam in cameras)
-                {
-                    if (cam.enabled && cam.gameObject.activeInHierarchy)
+                    instance = FindObjectOfType<VRCameraHelper>();
+                    if (instance == null)
                     {
-                        // Check if this camera is the main XR camera
-                        if (cam.CompareTag("MainCamera") || cam.name.Contains("XR") || cam.name.Contains("VR"))
-                        {
-                            cachedCamera = cam;
-                            cachedTransform = cam.transform;
-                            return;
-                        }
+                        GameObject helperGO = new GameObject("VR Camera Helper");
+                        instance = helperGO.AddComponent<VRCameraHelper>();
+                        DontDestroyOnLoad(helperGO);
                     }
                 }
+                return instance;
             }
-
-            // Priority 2: Find main camera
-            Camera mainCamera = Camera.main;
-            if (mainCamera != null)
+        }
+        
+        private void Awake()
+        {
+            if (instance == null)
             {
-                cachedCamera = mainCamera;
-                cachedTransform = mainCamera.transform;
-                return;
+                instance = this;
+                DontDestroyOnLoad(gameObject);
+                InitializeCameraReferences();
             }
-
-            // Priority 3: Find any active camera
-            Camera[] allCameras = Object.FindObjectsOfType<Camera>();
-            foreach (var cam in allCameras)
+            else if (instance != this)
             {
-                if (cam.enabled && cam.gameObject.activeInHierarchy)
+                Destroy(gameObject);
+            }
+        }
+        
+        private void Start()
+        {
+            if (instance == this)
+            {
+                InitializeCameraReferences();
+            }
+        }
+        
+        private void InitializeCameraReferences()
+        {
+            // Find XR Origin
+            xrOrigin = FindObjectOfType<XROrigin>();
+            if (xrOrigin != null)
+            {
+                activeCamera = xrOrigin.Camera;
+                activeCameraTransform = activeCamera.transform;
+                playerTransform = xrOrigin.CameraFloorOffsetObject.transform;
+            }
+            else
+            {
+                // Fallback to regular camera
+                activeCamera = Camera.main;
+                if (activeCamera != null)
                 {
-                    cachedCamera = cam;
-                    cachedTransform = cam.transform;
-                    return;
+                    activeCameraTransform = activeCamera.transform;
+                    playerTransform = activeCameraTransform;
                 }
             }
-
-            Debug.LogWarning("VRCameraHelper: No active camera found!");
-        }
-
-        /// <summary>
-        /// Checks if we're currently in VR mode
-        /// </summary>
-        public static bool IsVRActive
-        {
-            get { return XRSettings.enabled && XRSettings.loadedDeviceName != "None"; }
-        }
-
-        /// <summary>
-        /// Gets screen point to world ray (VR compatible)
-        /// </summary>
-        public static Ray ScreenPointToRay(Vector3 screenPoint)
-        {
-            var camera = ActiveCamera;
-            if (camera != null)
+            
+            if (activeCamera == null)
             {
-                return camera.ScreenPointToRay(screenPoint);
+                Debug.LogWarning("VRCameraHelper: No camera found. VR functionality may be limited.");
             }
-            return new Ray(Vector3.zero, Vector3.forward);
         }
-
+        
         /// <summary>
-        /// Converts world position to screen point (VR compatible)
+        /// Get world position relative to player
         /// </summary>
-        public static Vector3 WorldToScreenPoint(Vector3 worldPoint)
+        public static Vector3 GetWorldPositionFromPlayer(Vector3 localOffset)
         {
-            var camera = ActiveCamera;
-            if (camera != null)
+            if (Instance?.playerTransform != null)
             {
-                return camera.WorldToScreenPoint(worldPoint);
+                return Instance.playerTransform.TransformPoint(localOffset);
             }
-            return Vector3.zero;
+            return localOffset;
+        }
+        
+        /// <summary>
+        /// Get direction from player to target
+        /// </summary>
+        public static Vector3 GetDirectionToTarget(Vector3 targetPosition)
+        {
+            if (Instance?.playerTransform != null)
+            {
+                return (targetPosition - Instance.playerTransform.position).normalized;
+            }
+            return Vector3.forward;
+        }
+        
+        /// <summary>
+        /// Check if position is in player's field of view
+        /// </summary>
+        public static bool IsInFieldOfView(Vector3 worldPosition, float fovAngle = 90f)
+        {
+            if (Instance?.activeCameraTransform == null) return false;
+            
+            Vector3 directionToTarget = (worldPosition - Instance.activeCameraTransform.position).normalized;
+            float angle = Vector3.Angle(Instance.activeCameraTransform.forward, directionToTarget);
+            
+            return angle < fovAngle * 0.5f;
+        }
+        
+        /// <summary>
+        /// Get distance from player to position
+        /// </summary>
+        public static float GetDistanceToPlayer(Vector3 worldPosition)
+        {
+            if (Instance?.playerTransform != null)
+            {
+                return Vector3.Distance(Instance.playerTransform.position, worldPosition);
+            }
+            return float.MaxValue;
+        }
+        
+        /// <summary>
+        /// Refresh camera references (call after scene changes)
+        /// </summary>
+        public static void RefreshCameraReferences()
+        {
+            if (Instance != null)
+            {
+                Instance.InitializeCameraReferences();
+            }
         }
     }
 } 

@@ -174,7 +174,6 @@ namespace VRBoxingGame.Environment
         private float3 GetPlayerPosition()
         {
             return VRBoxingGame.Core.VRCameraHelper.PlayerPosition;
-            return float3.zero;
         }
         
         private void InitializeUnderwaterEnvironment()

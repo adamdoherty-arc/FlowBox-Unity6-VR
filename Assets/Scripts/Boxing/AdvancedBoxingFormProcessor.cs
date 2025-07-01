@@ -286,7 +286,7 @@ namespace VRBoxingGame.Boxing
             if (formAnalysisJobHandle.IsCreated) formAnalysisJobHandle.Complete();
             if (stanceDetectionJobHandle.IsCreated) stanceDetectionJobHandle.Complete();
             
-            // Dispose native arrays
+            // Dispose native arrays safely
             if (hipPositionHistory.IsCreated) hipPositionHistory.Dispose();
             if (leftFootHistory.IsCreated) leftFootHistory.Dispose();
             if (rightFootHistory.IsCreated) rightFootHistory.Dispose();

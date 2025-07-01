@@ -260,12 +260,13 @@ namespace VRBoxingGame.Boxing
         
         private async System.Threading.Tasks.Task ProcessPredictionResults()
         {
-            // Wait for jobs to complete
+            // Wait for jobs to complete asynchronously
             while (!predictionJobHandle.IsCompleted || !analysisJobHandle.IsCompleted)
             {
                 await System.Threading.Tasks.Task.Yield();
             }
             
+            // Complete jobs safely
             predictionJobHandle.Complete();
             analysisJobHandle.Complete();
             

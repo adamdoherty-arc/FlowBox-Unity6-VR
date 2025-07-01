@@ -161,16 +161,37 @@ namespace VRBoxingGame.Environment
         
         private void Update()
         {
-            if (enableJobSystemOptimization)
+            try
             {
-                UpdateWithJobSystem();
+                if (enableJobSystemOptimization)
+                {
+                    UpdateWithJobSystem();
+                }
+                else
+                {
+                    UpdateTraditional();
+                }
+                
+                // Update performance tracking
+                frameCount++;
+                performanceTimer += Time.deltaTime;
+                
+                if (performanceTimer >= 1f)
+                {
+                    float averageFPS = frameCount / performanceTimer;
+                    if (averageFPS < targetFrameRate * 0.9f)
+                    {
+                        OptimizePerformance();
+                    }
+                    
+                    frameCount = 0;
+                    performanceTimer = 0f;
+                }
             }
-            else
+            catch (System.Exception ex)
             {
-                UpdateTraditional();
+                Debug.LogError($"Error in AdvancedImmersiveEnvironmentSystem Update: {ex.Message}");
             }
-            
-            UpdatePerformanceMonitoring();
         }
         
         private void UpdateWithJobSystem()
@@ -591,27 +612,7 @@ namespace VRBoxingGame.Environment
             }
         }
         
-        private void UpdatePerformanceMonitoring()
-        {
-            frameCount++;
-            performanceTimer += Time.deltaTime;
-            
-            if (performanceTimer >= 1f)
-            {
-                float currentFPS = frameCount / performanceTimer;
-                
-                // Adjust quality based on performance
-                if (currentFPS < targetFrameRate * 0.8f)
-                {
-                    AdjustQualityForPerformance();
-                }
-                
-                frameCount = 0;
-                performanceTimer = 0f;
-            }
-        }
-        
-        private void AdjustQualityForPerformance()
+        private void OptimizePerformance()
         {
             // Reduce particle count
             foreach (var particleSystem in activeParticleSystems)
