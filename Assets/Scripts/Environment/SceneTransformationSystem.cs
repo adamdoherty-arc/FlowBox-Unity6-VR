@@ -114,7 +114,43 @@ namespace VRBoxingGame.Environment
         public void SetUseTraditionalTargets(bool useTraditional)
         {
             useTraditionalTargets = useTraditional;
-            Debug.Log($"Scene transformation system: Traditional targets = {useTraditional}");
+            
+            // Handle immersive environment toggling
+            var advancedEnvironment = AdvancedImmersiveEnvironmentSystem.Instance;
+            if (advancedEnvironment != null)
+            {
+                if (useTraditional)
+                {
+                    // Switch to traditional mode - clear immersive environment
+                    advancedEnvironment.ClearCurrentEnvironment();
+                    Debug.Log("🎯 Switched to traditional targets - immersive environment disabled");
+                }
+                else
+                {
+                    // Switch to immersive mode - enable environment for current scene
+                    switch (currentSceneType)
+                    {
+                        case SceneType.UnderwaterWorld:
+                            advancedEnvironment.CreateUnderwaterEnvironment();
+                            Debug.Log("🐟 Immersive underwater environment enabled");
+                            break;
+                            
+                        case SceneType.CrystalCave:
+                            // Could add crystal cave environment
+                            Debug.Log("💎 Crystal cave immersive mode enabled");
+                            break;
+                            
+                        // Add other immersive environments as needed
+                    }
+                }
+            }
+            
+            // Refresh current scene transformation
+            if (RhythmTargetSystem.Instance != null)
+            {
+                // Trigger scene refresh
+                SetSceneType(currentSceneType);
+            }
         }
         
         public GameObject TransformTarget(GameObject originalTarget, RhythmTargetSystem.CircleType circleType)
@@ -520,6 +556,17 @@ namespace VRBoxingGame.Environment
             {
                 case SceneType.UnderwaterWorld:
                     fishSystem.enabled = true;
+                    
+                    // Enable advanced immersive environment if not using traditional targets
+                    if (!useTraditionalTargets)
+                    {
+                        var advancedEnvironment = AdvancedImmersiveEnvironmentSystem.Instance;
+                        if (advancedEnvironment != null)
+                        {
+                            advancedEnvironment.CreateUnderwaterEnvironment();
+                            Debug.Log("🌊 Advanced underwater environment activated");
+                        }
+                    }
                     break;
                     
                 case SceneType.CrystalCave:

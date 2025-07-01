@@ -62,6 +62,9 @@ namespace VRBoxingGame.UI
         [Header("Target Mode Toggle")]
         public Toggle traditionalTargetsToggle;
         public TextMeshProUGUI targetModeText;
+        public Button targetModeInfoButton;
+        public GameObject targetModeInfoPanel;
+        public TextMeshProUGUI targetModeInfoText;
         
         [Header("Events")]
         public UnityEvent OnGameStart;
@@ -602,31 +605,231 @@ namespace VRBoxingGame.UI
         public void OnTargetModeToggled(bool useTraditional)
         {
             useTraditionalTargets = useTraditional;
-            UpdateTargetModeDisplay();
-            
-            // Apply setting to scene transformation system
-            if (SceneTransformationSystem.Instance != null)
-            {
-                SceneTransformationSystem.Instance.SetUseTraditionalTargets(useTraditional);
-            }
             
             // Save preference
             PlayerPrefs.SetInt("UseTraditionalTargets", useTraditional ? 1 : 0);
             PlayerPrefs.Save();
             
-            Debug.Log($"Target mode changed to: {(useTraditional ? "Traditional Boxing Circles" : "Scene Immersion")}");
+            // Update display
+            UpdateTargetModeDisplay();
+            
+            // Apply to scene transformation system
+            if (SceneTransformationSystem.Instance != null)
+            {
+                SceneTransformationSystem.Instance.SetUseTraditionalTargets(useTraditional);
+                Debug.Log($"🎯 Target mode changed to: {(useTraditional ? "Traditional" : "Immersive")}");
+            }
+            
+            // Special handling for underwater scene
+            if (currentSceneIndex == 5 && !useTraditional) // Underwater World with immersive mode
+            {
+                EnsureUnderwaterFishSystem();
+            }
+            
+            // Provide haptic feedback if available
+            ProvideHapticFeedback();
+            
+            // Show confirmation message
+            ShowTargetModeChangeConfirmation(useTraditional);
         }
         
         private void UpdateTargetModeDisplay()
         {
-            if (targetModeText != null)
-            {
-                targetModeText.text = useTraditionalTargets ? "Mode: Traditional Boxing" : "Mode: Scene Immersion";
-            }
-            
             if (traditionalTargetsToggle != null)
             {
                 traditionalTargetsToggle.isOn = useTraditionalTargets;
+            }
+            
+            if (targetModeText != null)
+            {
+                string modeText = useTraditionalTargets ? "Traditional Blocks" : "Immersive Elements";
+                string sceneSpecific = GetSceneSpecificTargetDescription();
+                targetModeText.text = $"{modeText}\n{sceneSpecific}";
+            }
+            
+            // Update info panel text
+            UpdateTargetModeInfoText();
+        }
+        
+        private string GetSceneSpecificTargetDescription()
+        {
+            if (useTraditionalTargets)
+            {
+                return "Standard white/gray circles and blocks";
+            }
+            
+            // Scene-specific immersive elements
+            switch (currentSceneIndex)
+            {
+                case 0: // Default Arena
+                    return "Enhanced visual targets";
+                case 1: // Rain Storm
+                    return "Lightning-charged raindrops";
+                case 2: // Neon City
+                    return "Glowing neon holograms";
+                case 3: // Space Station
+                    return "Floating space debris";
+                case 4: // Crystal Cave
+                    return "Resonating crystal formations";
+                case 5: // Underwater World
+                    return "🐟 Swimming fish with AI behavior";
+                case 6: // Desert Oasis
+                    return "Sand spirits and mirages";
+                case 7: // Forest Glade
+                    return "Forest spirits and magical lights";
+                default:
+                    return "Immersive scene elements";
+            }
+        }
+        
+        private void UpdateTargetModeInfoText()
+        {
+            if (targetModeInfoText == null) return;
+            
+            if (useTraditionalTargets)
+            {
+                targetModeInfoText.text = @"<color=#FFD700><b>Traditional Mode</b></color>
+
+<color=#FFFFFF>Classic VR boxing experience with:</color>
+• Standard white and gray target circles
+• Combination blocks for defensive moves
+• Consistent behavior across all scenes
+• Optimal performance for lower-end devices
+
+<color=#00FF00>✓ Best for competitive gameplay</color>
+<color=#00FF00>✓ Predictable target behavior</color>
+<color=#00FF00>✓ Maximum performance</color>";
+            }
+            else
+            {
+                string immersiveDescription = GetImmersiveDescription();
+                targetModeInfoText.text = $@"<color=#00BFFF><b>Immersive Mode</b></color>
+
+<color=#FFFFFF>Dynamic scene-specific targets:</color>
+{immersiveDescription}
+
+<color=#FFD700>⭐ Unique AI behaviors per scene</color>
+<color=#FFD700>⭐ Enhanced visual effects</color>
+<color=#FFD700>⭐ Immersive storytelling</color>
+
+<color=#FF6B6B>Note: May impact performance on Quest 2</color>";
+            }
+        }
+        
+        private string GetImmersiveDescription()
+        {
+            switch (currentSceneIndex)
+            {
+                case 5: // Underwater World
+                    return @"🐟 <color=#87CEEB><b>Underwater Fish System</b></color>
+• Small fish scatter when hit
+• Medium fish retreat and regroup
+• Large fish become aggressive
+• Sharks block with water disturbance
+• Bioluminescent trail effects
+• Ocean current simulation";
+                    
+                case 4: // Crystal Cave
+                    return @"💎 <color=#DDA0DD><b>Crystal Harmonics</b></color>
+• Resonating crystal formations
+• Musical frequency oscillations
+• Harmonic cluster blocks
+• Gem particle effects";
+                    
+                case 7: // Forest Glade
+                    return @"🌲 <color=#98FB98><b>Forest Spirits</b></color>
+• Magical forest spirits
+• Seasonal adaptation effects
+• Thorn vine defensive blocks
+• Nature particle systems";
+                    
+                case 1: // Rain Storm
+                    return @"⚡ <color=#4682B4><b>Storm Elements</b></color>
+• Lightning-charged particles
+• Thunder-synced effects
+• Rain-based interactions
+• Weather-reactive behavior";
+                    
+                default:
+                    return "• Scene-specific visual elements\n• Enhanced particle effects\n• Unique interaction behaviors";
+            }
+        }
+        
+        private void EnsureUnderwaterFishSystem()
+        {
+            // Ensure underwater fish system is available and initialized
+            var fishSystem = UnderwaterFishSystem.Instance;
+            if (fishSystem == null)
+            {
+                // Create fish system if it doesn't exist
+                GameObject fishSystemGO = new GameObject("Underwater Fish System");
+                fishSystem = fishSystemGO.AddComponent<UnderwaterFishSystem>();
+                Debug.Log("🐟 Created Underwater Fish System for immersive mode");
+            }
+            
+            // Enable the fish system
+            if (fishSystem != null && !fishSystem.enabled)
+            {
+                fishSystem.enabled = true;
+                Debug.Log("🌊 Enabled Underwater Fish System");
+            }
+        }
+        
+        private void ProvideHapticFeedback()
+        {
+            // Provide haptic feedback for VR controllers
+            var handTracking = FindObjectOfType<HandTrackingManager>();
+            if (handTracking != null)
+            {
+                // Light haptic pulse to confirm selection
+                handTracking.TriggerHapticFeedback(0.1f, 0.2f);
+            }
+        }
+        
+        private void ShowTargetModeChangeConfirmation(bool useTraditional)
+        {
+            string mode = useTraditional ? "Traditional" : "Immersive";
+            string sceneSpecific = GetSceneSpecificTargetDescription();
+            
+            // Show temporary confirmation message
+            var confirmationGO = new GameObject("TargetModeConfirmation");
+            var canvas = confirmationGO.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.worldCamera = Camera.main;
+            
+            var text = confirmationGO.AddComponent<TextMeshProUGUI>();
+            text.text = $"<color=#FFD700>Target Mode: {mode}</color>\n<color=#FFFFFF>{sceneSpecific}</color>";
+            text.fontSize = 24;
+            text.alignment = TextAlignmentOptions.Center;
+            
+            // Position in front of player
+            confirmationGO.transform.position = Camera.main.transform.position + Camera.main.transform.forward * 3f;
+            confirmationGO.transform.LookAt(Camera.main.transform);
+            confirmationGO.transform.Rotate(0, 180, 0);
+            
+            // Auto-destroy after 3 seconds
+            Destroy(confirmationGO, 3f);
+        }
+        
+        public void ShowTargetModeInfo()
+        {
+            if (targetModeInfoPanel != null)
+            {
+                bool isActive = targetModeInfoPanel.activeSelf;
+                targetModeInfoPanel.SetActive(!isActive);
+                
+                if (!isActive)
+                {
+                    UpdateTargetModeInfoText();
+                }
+            }
+        }
+        
+        public void HideTargetModeInfo()
+        {
+            if (targetModeInfoPanel != null)
+            {
+                targetModeInfoPanel.SetActive(false);
             }
         }
         

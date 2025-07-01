@@ -4,12 +4,15 @@ using VRBoxingGame.Boxing;
 using VRBoxingGame.Audio;
 using System.Collections;
 using Unity.Mathematics;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Burst;
 using System.Threading.Tasks;
 
 namespace VRBoxingGame.Environment
 {
     /// <summary>
-    /// Underwater Fish System - Implements detailed fish AI behaviors
+    /// Underwater Fish System - Implements detailed fish AI behaviors with Unity 6 optimization
     /// Small fish scatter, medium fish retreat and regroup, large fish become aggressive
     /// </summary>
     public class UnderwaterFishSystem : MonoBehaviour
@@ -19,6 +22,12 @@ namespace VRBoxingGame.Environment
         public int fishPerSchool = 8;
         public float schoolRadius = 3f;
         public float spawnRadius = 15f;
+        
+        [Header("Fish Prefabs")]
+        public GameObject smallFishPrefab;
+        public GameObject mediumFishPrefab;
+        public GameObject largeFishPrefab;
+        public GameObject sharkBlockPrefab;
         
         [Header("Current Effects")]
         public Vector3 currentDirection = Vector3.right;
@@ -30,25 +39,144 @@ namespace VRBoxingGame.Environment
         public float approachGlowMultiplier = 2f;
         public float hitGlowReduction = 0.3f;
         
+        [Header("Unity 6 Optimization")]
+        public bool enableJobSystemOptimization = true;
+        public bool enableBurstCompilation = true;
+        public int jobBatchSize = 32;
+        
+        // Singleton pattern - FIXED
+        public static UnderwaterFishSystem Instance { get; private set; }
+        
         // Active fish tracking
         private List<FishSchool> activeSchools = new List<FishSchool>();
         private List<GameObject> activeFish = new List<GameObject>();
+        
+        // Unity 6 Job System optimization
+        private NativeArray<float3> fishPositions;
+        private NativeArray<float3> fishVelocities;
+        private NativeArray<float> fishTimers;
+        private JobHandle fishUpdateJobHandle;
         
         // Current system
         private Vector3 currentVelocity;
         private float currentTimer = 0f;
         private float currentCycleDuration = 10f;
         
+        private void Awake()
+        {
+            // Initialize singleton
+            if (Instance == null)
+            {
+                Instance = this;
+                DontDestroyOnLoad(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+                return;
+            }
+        }
+        
         private void Start()
         {
             InitializeUnderwaterEnvironment();
+            InitializeJobSystem();
+        }
+        
+        private void InitializeJobSystem()
+        {
+            if (!enableJobSystemOptimization) return;
+            
+            int maxFish = maxFishSchools * fishPerSchool;
+            fishPositions = new NativeArray<float3>(maxFish, Allocator.Persistent);
+            fishVelocities = new NativeArray<float3>(maxFish, Allocator.Persistent);
+            fishTimers = new NativeArray<float>(maxFish, Allocator.Persistent);
+            
+            Debug.Log("🐟 Fish Job System initialized for high-performance simulation");
         }
         
         private void Update()
         {
-            UpdateCurrentSystem();
-            UpdateFishSchools();
+            if (enableJobSystemOptimization)
+            {
+                UpdateFishWithJobSystem();
+            }
+            else
+            {
+                UpdateCurrentSystem();
+                UpdateFishSchools();
+            }
+            
             UpdateBioluminescence();
+        }
+        
+        private void UpdateFishWithJobSystem()
+        {
+            // Complete previous job
+            fishUpdateJobHandle.Complete();
+            
+            // Update fish data arrays
+            UpdateFishDataArrays();
+            
+            // Schedule fish update job
+            var fishUpdateJob = new FishSimulationJob
+            {
+                positions = fishPositions,
+                velocities = fishVelocities,
+                timers = fishTimers,
+                deltaTime = Time.deltaTime,
+                currentDirection = currentDirection,
+                currentStrength = currentStrength,
+                playerPosition = GetPlayerPosition()
+            };
+            
+            fishUpdateJobHandle = fishUpdateJob.Schedule(activeFish.Count, jobBatchSize);
+            
+            // Apply results back to GameObjects
+            fishUpdateJobHandle.Complete();
+            ApplyJobResultsToFish();
+        }
+        
+        private void UpdateFishDataArrays()
+        {
+            for (int i = 0; i < activeFish.Count && i < fishPositions.Length; i++)
+            {
+                if (activeFish[i] != null)
+                {
+                    fishPositions[i] = activeFish[i].transform.position;
+                    var rb = activeFish[i].GetComponent<Rigidbody>();
+                    if (rb != null)
+                    {
+                        fishVelocities[i] = rb.velocity;
+                    }
+                    fishTimers[i] += Time.deltaTime;
+                }
+            }
+        }
+        
+        private void ApplyJobResultsToFish()
+        {
+            for (int i = 0; i < activeFish.Count && i < fishPositions.Length; i++)
+            {
+                if (activeFish[i] != null)
+                {
+                    activeFish[i].transform.position = fishPositions[i];
+                    var rb = activeFish[i].GetComponent<Rigidbody>();
+                    if (rb != null)
+                    {
+                        rb.velocity = fishVelocities[i];
+                    }
+                }
+            }
+        }
+        
+        private float3 GetPlayerPosition()
+        {
+            if (Camera.main != null)
+            {
+                return Camera.main.transform.position;
+            }
+            return float3.zero;
         }
         
         private void InitializeUnderwaterEnvironment()
@@ -59,7 +187,150 @@ namespace VRBoxingGame.Environment
                 CreateFishSchool();
             }
             
-            Debug.Log($"Underwater Fish System initialized with {maxFishSchools} schools");
+            Debug.Log($"🌊 Underwater Fish System initialized with {maxFishSchools} schools");
+        }
+        
+        // ADDED: CreateFishTarget method that was referenced but missing
+        public GameObject CreateFishTarget(RhythmTargetSystem.CircleType circleType, GameObject originalTarget)
+        {
+            // Determine fish size based on circle type
+            FishTargetBehavior.FishSize fishSize = circleType == RhythmTargetSystem.CircleType.White ? 
+                FishTargetBehavior.FishSize.Small : FishTargetBehavior.FishSize.Medium;
+            
+            // Get appropriate prefab
+            GameObject fishPrefab = GetFishPrefab(fishSize);
+            if (fishPrefab == null)
+            {
+                // Fallback: create basic fish
+                return CreateBasicFish(circleType, originalTarget.transform.position);
+            }
+            
+            // Create fish from prefab
+            GameObject fish = Instantiate(fishPrefab, originalTarget.transform.position, originalTarget.transform.rotation);
+            
+            // Add fish behavior
+            var fishBehavior = fish.GetComponent<FishTargetBehavior>();
+            if (fishBehavior == null)
+            {
+                fishBehavior = fish.AddComponent<FishTargetBehavior>();
+            }
+            fishBehavior.Initialize(circleType, fishSize);
+            
+            // Add underwater physics
+            var rigidbody = fish.GetComponent<Rigidbody>();
+            if (rigidbody == null) rigidbody = fish.AddComponent<Rigidbody>();
+            rigidbody.drag = 2.5f;
+            rigidbody.useGravity = false;
+            
+            // Add bioluminescence
+            var bioluminescence = fish.GetComponent<BioluminescenceEffect>();
+            if (bioluminescence == null)
+            {
+                bioluminescence = fish.AddComponent<BioluminescenceEffect>();
+            }
+            bioluminescence.Initialize(circleType == RhythmTargetSystem.CircleType.White ? Color.white : Color.gray);
+            
+            // Add to active fish tracking
+            activeFish.Add(fish);
+            
+            // Destroy original target
+            if (originalTarget != fish)
+            {
+                Destroy(originalTarget);
+            }
+            
+            return fish;
+        }
+        
+        // ADDED: CreateSharkBlock method
+        public GameObject CreateSharkBlock(GameObject originalBlock, float spinSpeed)
+        {
+            GameObject shark;
+            
+            if (sharkBlockPrefab != null)
+            {
+                shark = Instantiate(sharkBlockPrefab, originalBlock.transform.position, originalBlock.transform.rotation);
+            }
+            else
+            {
+                // Fallback: create basic shark block
+                shark = CreateBasicSharkBlock(originalBlock.transform.position, spinSpeed);
+            }
+            
+            // Add shark behavior
+            var sharkBehavior = shark.GetComponent<SharkBlockBehavior>();
+            if (sharkBehavior == null)
+            {
+                sharkBehavior = shark.AddComponent<SharkBlockBehavior>();
+            }
+            sharkBehavior.Initialize(spinSpeed);
+            
+            // Add underwater physics
+            var rigidbody = shark.GetComponent<Rigidbody>();
+            if (rigidbody == null) rigidbody = shark.AddComponent<Rigidbody>();
+            rigidbody.drag = 1.5f;
+            rigidbody.useGravity = false;
+            
+            // Destroy original block
+            if (originalBlock != shark)
+            {
+                Destroy(originalBlock);
+            }
+            
+            return shark;
+        }
+        
+        private GameObject GetFishPrefab(FishTargetBehavior.FishSize fishSize)
+        {
+            return fishSize switch
+            {
+                FishTargetBehavior.FishSize.Small => smallFishPrefab,
+                FishTargetBehavior.FishSize.Medium => mediumFishPrefab,
+                FishTargetBehavior.FishSize.Large => largeFishPrefab,
+                _ => smallFishPrefab
+            };
+        }
+        
+        private GameObject CreateBasicFish(RhythmTargetSystem.CircleType circleType, Vector3 position)
+        {
+            GameObject fish = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            fish.name = $"Fish_{circleType}_{Random.Range(1000, 9999)}";
+            fish.transform.position = position;
+            
+            // Set scale based on type
+            float scale = circleType == RhythmTargetSystem.CircleType.White ? 0.5f : 0.8f;
+            fish.transform.localScale = Vector3.one * scale;
+            
+            // Set color
+            var renderer = fish.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                Material fishMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                fishMat.color = circleType == RhythmTargetSystem.CircleType.White ? 
+                    new Color(0.8f, 0.9f, 1f, 0.9f) : new Color(0.5f, 0.6f, 0.8f, 0.9f);
+                renderer.material = fishMat;
+            }
+            
+            return fish;
+        }
+        
+        private GameObject CreateBasicSharkBlock(Vector3 position, float spinSpeed)
+        {
+            GameObject shark = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            shark.name = $"SharkBlock_{Random.Range(1000, 9999)}";
+            shark.transform.position = position;
+            shark.transform.localScale = Vector3.one * 1.5f;
+            
+            // Set shark appearance
+            var renderer = shark.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                Material sharkMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                sharkMat.color = new Color(0.3f, 0.3f, 0.5f, 0.9f);
+                renderer.material = sharkMat;
+            }
+            
+            return shark;
         }
         
         private void CreateFishSchool()
@@ -88,8 +359,19 @@ namespace VRBoxingGame.Environment
         
         private GameObject CreateFish(FishSchool.SchoolType schoolType, Vector3 centerPosition)
         {
-            // Create basic fish object
-            GameObject fish = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            GameObject fishPrefab = GetFishPrefab(GetFishSize(schoolType));
+            GameObject fish;
+            
+            if (fishPrefab != null)
+            {
+                fish = Instantiate(fishPrefab, centerPosition, Quaternion.identity);
+            }
+            else
+            {
+                // Create basic fish object
+                fish = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            }
+            
             fish.name = $"Fish_{schoolType}_{Random.Range(1000, 9999)}";
             
             // Position within school
@@ -101,7 +383,11 @@ namespace VRBoxingGame.Environment
             fish.transform.localScale = scale;
             
             // Add fish behavior
-            var fishBehavior = fish.AddComponent<FishTargetBehavior>();
+            var fishBehavior = fish.GetComponent<FishTargetBehavior>();
+            if (fishBehavior == null)
+            {
+                fishBehavior = fish.AddComponent<FishTargetBehavior>();
+            }
             fishBehavior.Initialize(RhythmTargetSystem.CircleType.White, GetFishSize(schoolType));
             
             // Add underwater physics
@@ -111,12 +397,20 @@ namespace VRBoxingGame.Environment
             rigidbody.useGravity = false;
             
             // Add bioluminescence
-            var bioluminescence = fish.AddComponent<BioluminescenceEffect>();
+            var bioluminescence = fish.GetComponent<BioluminescenceEffect>();
+            if (bioluminescence == null)
+            {
+                bioluminescence = fish.AddComponent<BioluminescenceEffect>();
+            }
             Color fishColor = GetFishColor(schoolType);
             bioluminescence.Initialize(fishColor);
             
             // Add school behavior
-            var schoolBehavior = fish.AddComponent<SchoolBehavior>();
+            var schoolBehavior = fish.GetComponent<SchoolBehavior>();
+            if (schoolBehavior == null)
+            {
+                schoolBehavior = fish.AddComponent<SchoolBehavior>();
+            }
             schoolBehavior.Initialize(centerPosition, schoolRadius);
             
             // Add collider for interaction
@@ -478,6 +772,17 @@ namespace VRBoxingGame.Environment
         
         private void OnDestroy()
         {
+            // Complete any running jobs
+            if (fishUpdateJobHandle.IsCreated)
+            {
+                fishUpdateJobHandle.Complete();
+            }
+            
+            // Dispose native arrays
+            if (fishPositions.IsCreated) fishPositions.Dispose();
+            if (fishVelocities.IsCreated) fishVelocities.Dispose();
+            if (fishTimers.IsCreated) fishTimers.Dispose();
+            
             // Clean up all fish
             foreach (var fish in activeFish)
             {
@@ -505,6 +810,118 @@ namespace VRBoxingGame.Environment
                 Small,
                 Medium,
                 Large
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Unity 6 Job System for high-performance fish simulation
+    /// </summary>
+    [BurstCompile]
+    public struct FishSimulationJob : IJobParallelFor
+    {
+        public NativeArray<float3> positions;
+        public NativeArray<float3> velocities;
+        public NativeArray<float> timers;
+        
+        [ReadOnly] public float deltaTime;
+        [ReadOnly] public float3 currentDirection;
+        [ReadOnly] public float currentStrength;
+        [ReadOnly] public float3 playerPosition;
+        
+        public void Execute(int index)
+        {
+            if (index >= positions.Length) return;
+            
+            // Current fish state
+            float3 position = positions[index];
+            float3 velocity = velocities[index];
+            float timer = timers[index];
+            
+            // Apply ocean current
+            float3 currentForce = currentDirection * currentStrength;
+            
+            // Apply swimming behavior
+            float3 swimmingForce = new float3(
+                math.sin(timer * 0.5f) * 0.3f,
+                math.sin(timer * 0.7f) * 0.2f,
+                math.cos(timer * 0.6f) * 0.3f
+            );
+            
+            // Calculate distance to player for behavior modification
+            float distanceToPlayer = math.distance(position, playerPosition);
+            float playerInfluence = math.saturate(5f / (distanceToPlayer + 1f));
+            
+            // Apply forces
+            velocity += (currentForce + swimmingForce) * deltaTime;
+            
+            // Apply drag
+            velocity *= 0.98f;
+            
+            // Update position
+            position += velocity * deltaTime;
+            
+            // Write back results
+            positions[index] = position;
+            velocities[index] = velocity;
+            timers[index] = timer + deltaTime;
+        }
+    }
+    
+    /// <summary>
+    /// Shark Block Behavior Component
+    /// </summary>
+    public class SharkBlockBehavior : MonoBehaviour
+    {
+        [Header("Shark Properties")]
+        public float spinSpeed = 2f;
+        public float approachSpeed = 3f;
+        public float attackRange = 5f;
+        
+        private Vector3 targetPosition;
+        private bool isAttacking = false;
+        private float attackTimer = 0f;
+        private Rigidbody sharkRigidbody;
+        
+        public void Initialize(float speed)
+        {
+            spinSpeed = speed;
+            sharkRigidbody = GetComponent<Rigidbody>();
+            targetPosition = Camera.main.transform.position;
+            
+            // Start attack sequence
+            isAttacking = true;
+        }
+        
+        private void Update()
+        {
+            if (isAttacking)
+            {
+                UpdateSharkAttack();
+            }
+            
+            // Spin the shark
+            transform.Rotate(0, 0, spinSpeed * Time.deltaTime);
+        }
+        
+        private void UpdateSharkAttack()
+        {
+            attackTimer += Time.deltaTime;
+            
+            // Move toward player
+            Vector3 direction = (targetPosition - transform.position).normalized;
+            if (sharkRigidbody != null)
+            {
+                sharkRigidbody.AddForce(direction * approachSpeed, ForceMode.Acceleration);
+            }
+            
+            // Check if reached player or timeout
+            float distanceToTarget = Vector3.Distance(transform.position, targetPosition);
+            if (distanceToTarget < attackRange || attackTimer > 10f)
+            {
+                // Attack complete
+                isAttacking = false;
+                Destroy(gameObject, 2f);
             }
         }
     }
