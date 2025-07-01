@@ -453,7 +453,7 @@ namespace VRBoxingGame.Boxing
                 
                 OnStanceTransition?.Invoke(activeTransition);
                 
-                yield return null;
+                yield return new WaitForEndOfFrame();
             }
             
             // Complete transition

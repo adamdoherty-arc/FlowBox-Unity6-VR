@@ -139,7 +139,7 @@ namespace VRBoxingGame.Setup
         
         private System.Collections.IEnumerator DelayedHandControllerSetup()
         {
-            yield return null; // Wait one frame
+            yield return new WaitForEndOfFrame(); // Wait one frame
             
             XROrigin xrOrigin = FindObjectOfType<XROrigin>();
             if (xrOrigin != null)

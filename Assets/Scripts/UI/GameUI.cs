@@ -180,8 +180,18 @@ namespace VRBoxingGame.UI
             if (component != null && component.name.Contains(name))
                 return component;
             
-            // Try to find by name in scene
-            GameObject found = GameObject.Find(name);
+            // Try to find by name in UI hierarchy (more efficient than GameObject.Find)
+            Transform found = transform.root.Find(name);
+            if (found == null)
+            {
+                // Search in all canvases as fallback
+                Canvas[] canvases = FindObjectsOfType<Canvas>();
+                foreach (var canvas in canvases)
+                {
+                    found = canvas.transform.Find(name);
+                    if (found != null) break;
+                }
+            }
             if (found != null)
                 return found.GetComponent<T>();
             

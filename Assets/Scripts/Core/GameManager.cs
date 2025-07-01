@@ -343,15 +343,13 @@ namespace VRBoxingGame.Core
             
             if (deviceModel.Contains("Quest 3"))
             {
-                // Quest 3 optimizations
-                Application.targetFrameRate = 90;
+                // Quest 3 optimizations - framerate handled by VRRenderGraphSystem
                 QualitySettings.antiAliasing = 4;
                 QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;
             }
             else if (deviceModel.Contains("Quest 2"))
             {
-                // Quest 2 optimizations
-                Application.targetFrameRate = 72;
+                // Quest 2 optimizations - framerate handled by VRRenderGraphSystem
                 QualitySettings.antiAliasing = 2;
                 QualitySettings.anisotropicFiltering = AnisotropicFiltering.Disable;
             }

@@ -408,7 +408,9 @@ namespace VRBoxingGame.Boxing
                 
                 // Phase 2: Approach player - speed correlates with spin speed
                 Vector3 startPos = spinPosition;
-                Vector3 endPos = Camera.main.transform.position + Camera.main.transform.forward * 0.3f;
+                var xrCamera = FindObjectOfType<Camera>();
+                if (xrCamera == null) xrCamera = Camera.main;
+                Vector3 endPos = xrCamera.transform.position + xrCamera.transform.forward * 0.3f;
                 
                 // Faster spinning blocks approach faster
                 float speedMultiplier = blockSpinSpeed / 360f; // Normalize spin speed

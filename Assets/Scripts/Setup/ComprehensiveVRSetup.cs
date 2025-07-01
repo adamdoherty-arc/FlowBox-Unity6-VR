@@ -458,7 +458,7 @@ namespace VRBoxingGame.Setup
         private void ApplyInitialOptimizations()
         {
             QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = 90;
+                            // Target framerate handled by VRRenderGraphSystem
             GraphicsSettings.useScriptableRenderPipelineBatching = true;
             
             Log("Initial optimizations applied");

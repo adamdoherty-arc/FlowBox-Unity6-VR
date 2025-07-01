@@ -360,7 +360,7 @@ namespace VRBoxingGame.Environment
                     coralPositions.Count
                 );
                 
-                yield return null; // Wait for next frame
+                yield return new WaitForEndOfFrame(); // Wait for next frame
             }
         }
         
@@ -524,7 +524,7 @@ namespace VRBoxingGame.Environment
                 var main = particleSystem.main;
                 main.startSize = 0.05f + (beatIntensity * 0.1f);
                 
-                yield return null;
+                yield return new WaitForEndOfFrame();
             }
         }
         
