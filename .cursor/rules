@@ -1,0 +1,135 @@
+# VR Boxing Game Unity 6 - Development Rules
+
+## Project Overview
+**Project Type**: Unity 6 VR Rhythm Game  
+**Architecture**: Component-based with Job System optimization  
+**Status**: 100% complete with comprehensive features system  
+**Documentation**: All project knowledge maintained in `.cursor/memory-bank/` files
+
+## Memory Bank System
+This project uses a comprehensive memory bank system for knowledge management:
+- **projectbrief.md** → Core project vision and requirements
+- **activeContext.md** → Current work focus and recent implementations  
+- **progress.md** → Completion status and system inventory
+- **features.md** → Comprehensive feature tracking with testing requirements
+- **sceneDescriptions.md** → Detailed scene mechanics and specifications
+- **systemPatterns.md** → Architecture patterns and design decisions
+- **techContext.md** → Technology stack and development environment
+
+**Always reference these files for project context and current status.**
+
+## Unity 6 Development Standards
+
+### Code Architecture Principles
+- **Component Pattern**: Separation of concerns with modular components
+- **Singleton Pattern**: For managers requiring global access (GameManager, AudioManager)
+- **Event-Driven Design**: Unity Events for decoupled system communication
+- **Job System Integration**: Burst-compiled performance-critical operations
+- **Async/Await Patterns**: Modern asynchronous programming over coroutines
+
+### VR-Specific Requirements
+- **Performance Targets**: 90 FPS Quest 3, 72 FPS minimum Quest 2
+- **Comfort First**: No rapid camera movement, proper ergonomics
+- **World-Space UI**: All interfaces positioned at comfortable viewing distances
+- **Hand Tracking**: Primary input with controller fallback
+- **Spatial Audio**: Immersive 3D positional audio experience
+
+### Code Quality Standards
+- **Namespace Convention**: `VRBoxingGame.[Category]`
+- **Error Handling**: Comprehensive exception handling with graceful degradation
+- **Memory Management**: Proper disposal of native collections and resources
+- **Performance Monitoring**: Continuous VR performance validation
+- **Testing Requirements**: Unit tests for critical functionality
+
+### Unity 6 Feature Utilization
+- **Render Graph**: VR-optimized rendering pipeline
+- **Job System + Burst**: Multi-threaded performance optimization
+- **Native Collections**: Memory-efficient data structures
+- **XR Interaction Toolkit 3.0+**: Latest VR interaction patterns
+- **Universal Render Pipeline**: Optimized for mobile VR devices
+
+## Feature Development Protocol
+
+### Feature Lifecycle
+1. **Proposal** → Document in `features.md` with appropriate status
+2. **Planning** → Define implementation approach and test requirements
+3. **Development** → Implement with Unity 6 best practices
+4. **Testing** → Validate functionality and VR performance
+5. **Integration** → Ensure compatibility with existing systems
+6. **Documentation** → Update memory bank files
+
+### Testing Framework
+- **Unit Tests**: Core functionality validation
+- **Integration Tests**: System interaction verification
+- **VR Experience Tests**: Comfort and usability validation
+- **Performance Tests**: Frame rate and memory usage validation
+
+### Quality Gates
+- VR performance targets maintained
+- Hand tracking accuracy preserved
+- Audio synchronization verified
+- System integration confirmed
+- Documentation updated
+
+## Game-Specific Rules
+
+### Core Mechanics
+- **Hand Assignment**: White circles = LEFT HAND, Gray circles = RIGHT HAND
+- **Timing Correlation**: Faster approach speed = faster spin speed
+- **Scene Transformation**: All 8 scenes support traditional and transformed modes
+- **Beat Synchronization**: All gameplay elements tied to music analysis
+
+### Performance Optimization
+- **Object Pooling**: All spawned targets and effects
+- **LOD Systems**: Distance-based quality reduction for complex scenes
+- **Automatic Quality Adjustment**: Dynamic optimization based on performance
+- **Memory Management**: Efficient cleanup and resource management
+
+## Development Workflow
+
+### Before Implementation
+1. Check `features.md` for current priorities
+2. Review relevant memory bank files for context
+3. Validate approach against VR performance requirements
+4. Plan testing strategy
+
+### During Implementation
+1. Follow Unity 6 best practices
+2. Implement tests alongside features
+3. Monitor VR performance impact
+4. Document integration points
+
+### After Implementation
+1. Update `features.md` status
+2. Sync memory bank files
+3. Validate system health
+4. Archive implementation notes
+
+## File Organization
+```
+Assets/Scripts/
+├── Core/          # Game management and state
+├── Boxing/        # Target spawning and hit detection
+├── Audio/         # Music analysis and beat detection
+├── HandTracking/  # VR input and haptic feedback
+├── Environment/   # Scene systems and transformations
+├── UI/            # User interface components
+├── Performance/   # Optimization and monitoring
+└── Setup/         # Automated VR setup systems
+```
+
+## Key Integration Points
+- **GameManager**: Central state management and event coordination
+- **RhythmTargetSystem**: Beat-synchronized target spawning
+- **SceneTransformationSystem**: Dynamic scene switching and transformation
+- **HapticFeedbackManager**: XR controller vibration and feedback
+- **VRPerformanceMonitor**: Continuous optimization and quality adjustment
+
+## Success Criteria
+- **Immediate Playability**: Game works immediately after setup
+- **VR Comfort**: No motion sickness or discomfort
+- **Performance Stability**: Consistent frame rates across all scenes
+- **Feature Completeness**: All systems integrate seamlessly
+- **Code Quality**: Maintainable, extensible, well-documented
+
+**Remember**: This is a rhythm game where timing and VR comfort are paramount. Every change should consider both gameplay feel and VR best practices while leveraging the comprehensive memory bank system for project knowledge. 
