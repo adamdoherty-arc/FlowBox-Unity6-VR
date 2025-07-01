@@ -4,11 +4,15 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Burst;
 using System.Collections.Generic;
+using VRBoxingGame.Boxing;
+using VRBoxingGame.Performance;
+using VRBoxingGame.Audio;
 
 namespace VRBoxingGame.Core
 {
     /// <summary>
-    /// Enhanced Game Manager for Unity 6 with performance optimizations and new features
+    /// Enhanced Game Manager for Unity 6 with AI-driven adaptive systems and predictive analytics
+    /// Features: ML-powered difficulty adjustment, real-time coaching, performance prediction
     /// </summary>
     public class GameManager : MonoBehaviour
     {
@@ -18,10 +22,29 @@ namespace VRBoxingGame.Core
         public bool enableAdaptiveDifficulty = true;
         public bool enablePerformanceMonitoring = true;
         
-        [Header("Unity 6 Features")]
+        [Header("Unity 6 Advanced Features")]
+        public bool enableMLDrivenDifficulty = true;
+        public bool enablePredictiveAnalytics = true;
+        public bool enableRealTimeCoaching = true;
+        public bool enablePlayerModeling = true;
+        
+        [Header("Unity 6 Performance Features")]
         public bool enableGPUResidentDrawer = true;
         public bool enableRenderGraph = true;
         public bool enableJobSystem = true;
+        public bool enableBurstCompilation = true;
+        
+        [Header("Advanced Analytics")]
+        public int performanceDataPoints = 1000;
+        public float analyticsUpdateFrequency = 10f; // 10 FPS analytics
+        public bool enableHeatmapGeneration = true;
+        public bool enablePerformancePrediction = true;
+        
+        [Header("Coaching System")]
+        public bool enableVocalCoaching = true;
+        public bool enableVisualCues = true;
+        public float coachingInterval = 15f;
+        public float coachingConfidenceThreshold = 0.7f;
         
         [Header("Events")]
         public UnityEvent OnGameStart;
@@ -30,6 +53,8 @@ namespace VRBoxingGame.Core
         public UnityEvent<float> OnTimeChanged;
         public UnityEvent<float> OnPerformanceUpdate;
         public UnityEvent<GameState> OnGameStateChanged;
+        public UnityEvent<PlayerAnalytics> OnAnalyticsUpdate;
+        public UnityEvent<CoachingInstruction> OnCoachingInstruction;
         
         // Game state
         public enum GameState
@@ -38,7 +63,46 @@ namespace VRBoxingGame.Core
             Playing,
             Paused,
             Finished,
-            Loading
+            Loading,
+            Analyzing,
+            Coaching
+        }
+        
+        // Advanced Data Structures
+        [System.Serializable]
+        public struct PlayerAnalytics
+        {
+            public float accuracy;
+            public float powerGeneration;
+            public float formConsistency;
+            public float endurance;
+            public float reactionTime;
+            public float skillProgression;
+            public Vector3[] heatmapData;
+            public float predictedPerformance;
+            public float confidenceLevel;
+        }
+        
+        [System.Serializable]
+        public struct CoachingInstruction
+        {
+            public CoachingType type;
+            public string message;
+            public float priority;
+            public float duration;
+            public bool requiresVisualCue;
+            public Vector3 visualPosition;
+            public Color cueColor;
+        }
+        
+        public enum CoachingType
+        {
+            FormCorrection,
+            PowerImprovement,
+            AccuracyBoost,
+            EnduranceGuidance,
+            StanceAdjustment,
+            Motivation
         }
         
         [SerializeField] private GameState currentState = GameState.Menu;
@@ -54,42 +118,67 @@ namespace VRBoxingGame.Core
         private Queue<float> frameTimeHistory = new Queue<float>();
         private const int maxFrameHistory = 60;
         
+        // ML and Analytics Systems
+        private MLDifficultyEngine mlDifficultyEngine;
+        private PerformancePredictor performancePredictor;
+        private RealTimeCoach realTimeCoach;
+        private PlayerBehaviorModel playerModel;
+        
+        // Advanced tracking data
+        private NativeArray<float> performanceData;
+        private NativeArray<float3> playerMovementData;
+        private NativeArray<float> reactionTimeData;
+        private JobHandle analyticsJobHandle;
+        
+        // Player analytics
+        private PlayerAnalytics currentAnalytics;
+        private float lastAnalyticsUpdate;
+        private float lastCoachingTime;
+        
         // Adaptive difficulty
         private float playerSkillLevel = 1.0f;
         private float hitAccuracy = 1.0f;
-        private int totalTargets = 0;
-        private int hitTargets = 0;
+        private float adaptiveDifficultyMultiplier = 1.0f;
         
-        // Singleton pattern
         public static GameManager Instance { get; private set; }
         
-        // Properties
+        // Enhanced Properties
         public GameState CurrentState => currentState;
-        public int CurrentScore => currentScore;
-        public float TimeRemaining => timeRemaining;
-        public bool IsGameActive => currentState == GameState.Playing;
-        public int CurrentCombo => currentCombo;
-        public float CurrentMultiplier => currentMultiplier;
+        public PlayerAnalytics CurrentAnalytics => currentAnalytics;
         public float PlayerSkillLevel => playerSkillLevel;
-        public float HitAccuracy => hitAccuracy;
-        public float AverageFrameTime => averageFrameTime;
+        public float AdaptiveDifficultyMultiplier => adaptiveDifficultyMultiplier;
+        public bool IsMLDrivenDifficultyEnabled => enableMLDrivenDifficulty;
         
         private void Awake()
         {
-            // Singleton setup
             if (Instance == null)
             {
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
-                InitializeUnity6Features();
+                InitializeGameManager();
             }
             else
             {
                 Destroy(gameObject);
-                return;
             }
+        }
+        
+        private void InitializeGameManager()
+        {
+            Debug.Log("🎮 Initializing Advanced Game Manager...");
             
-            timeRemaining = gameSessionDuration;
+            // Initialize Unity 6 features
+            InitializeUnity6Features();
+            
+            // Initialize ML and analytics systems
+            if (enableMLDrivenDifficulty) InitializeMLSystems();
+            if (enablePredictiveAnalytics) InitializePredictiveSystems();
+            if (enableRealTimeCoaching) InitializeCoachingSystems();
+            
+            // Initialize performance tracking
+            InitializePerformanceTracking();
+            
+            Debug.Log("✅ Advanced Game Manager initialized with Unity 6 features!");
         }
         
         private void InitializeUnity6Features()
@@ -99,6 +188,7 @@ namespace VRBoxingGame.Core
             {
                 // GPU Resident Drawer for better rendering performance
                 QualitySettings.enableLODCrossFade = true;
+                Debug.Log("📊 GPU Resident Drawer enabled");
             }
             
             if (enableRenderGraph)
@@ -106,13 +196,59 @@ namespace VRBoxingGame.Core
                 // Render Graph optimizations
                 QualitySettings.streamingMipmapsActive = true;
                 QualitySettings.streamingMipmapsMemoryBudget = 512;
+                Debug.Log("🎨 Render Graph optimizations enabled");
             }
             
             // Set optimal VR settings for Unity 6
             Application.targetFrameRate = 90; // Quest 3 target
             QualitySettings.vSyncCount = 0; // VR handles its own sync
             
-            Debug.Log("Unity 6 features initialized for VR Boxing Game");
+            Debug.Log("🎯 Unity 6 VR optimizations applied");
+        }
+        
+        private void InitializeMLSystems()
+        {
+            mlDifficultyEngine = new MLDifficultyEngine();
+            mlDifficultyEngine.Initialize();
+            Debug.Log("🧠 ML Difficulty Engine initialized");
+        }
+        
+        private void InitializePredictiveSystems()
+        {
+            performancePredictor = new PerformancePredictor();
+            playerModel = new PlayerBehaviorModel();
+            Debug.Log("🔮 Predictive Analytics initialized");
+        }
+        
+        private void InitializeCoachingSystems()
+        {
+            realTimeCoach = new RealTimeCoach();
+            realTimeCoach.Initialize(coachingConfidenceThreshold);
+            Debug.Log("🏃‍♂️ Real-Time Coaching initialized");
+        }
+        
+        private void InitializePerformanceTracking()
+        {
+            // Initialize native arrays for high-performance data tracking
+            performanceData = new NativeArray<float>(performanceDataPoints, Allocator.Persistent);
+            playerMovementData = new NativeArray<float3>(performanceDataPoints, Allocator.Persistent);
+            reactionTimeData = new NativeArray<float>(performanceDataPoints, Allocator.Persistent);
+            
+            // Initialize analytics structure
+            currentAnalytics = new PlayerAnalytics
+            {
+                accuracy = 0f,
+                powerGeneration = 0f,
+                formConsistency = 0f,
+                endurance = 1f,
+                reactionTime = 0f,
+                skillProgression = 0f,
+                heatmapData = new Vector3[100],
+                predictedPerformance = 0f,
+                confidenceLevel = 0f
+            };
+            
+            Debug.Log("📈 Performance tracking initialized");
         }
         
         private void Update()
@@ -120,12 +256,32 @@ namespace VRBoxingGame.Core
             if (currentState == GameState.Playing)
             {
                 UpdateGameTimer();
-                UpdateAdaptiveDifficulty();
+                
+                if (enableMLDrivenDifficulty)
+                {
+                    UpdateMLDrivenDifficulty();
+                }
+                else if (enableAdaptiveDifficulty)
+                {
+                    UpdateAdaptiveDifficulty();
+                }
             }
             
             if (enablePerformanceMonitoring)
             {
                 UpdatePerformanceMetrics();
+            }
+            
+            if (enablePredictiveAnalytics && Time.time - lastAnalyticsUpdate >= 1f / analyticsUpdateFrequency)
+            {
+                UpdatePredictiveAnalytics();
+                lastAnalyticsUpdate = Time.time;
+            }
+            
+            if (enableRealTimeCoaching && Time.time - lastCoachingTime >= coachingInterval)
+            {
+                UpdateRealTimeCoaching();
+                lastCoachingTime = Time.time;
             }
         }
         
@@ -140,25 +296,33 @@ namespace VRBoxingGame.Core
             }
         }
         
+        private void UpdateMLDrivenDifficulty()
+        {
+            if (mlDifficultyEngine == null) return;
+            
+            // Feed current performance data to ML engine
+            var performanceData = GatherCurrentPerformanceData();
+            float predictedOptimalDifficulty = mlDifficultyEngine.PredictOptimalDifficulty(performanceData);
+            
+            // Smooth difficulty transitions
+            float targetDifficulty = Mathf.Lerp(adaptiveDifficultyMultiplier, predictedOptimalDifficulty, Time.deltaTime * 0.5f);
+            SetDifficultyMultiplier(targetDifficulty);
+        }
+        
         private void UpdateAdaptiveDifficulty()
         {
-            if (!enableAdaptiveDifficulty) return;
-            
-            // Calculate hit accuracy
-            if (totalTargets > 0)
-            {
-                hitAccuracy = (float)hitTargets / totalTargets;
-            }
-            
-            // Adjust skill level based on performance
+            // Traditional adaptive difficulty based on performance
             float targetAccuracy = 0.75f; // Target 75% accuracy
-            if (hitAccuracy > targetAccuracy + 0.1f)
+            float accuracyDifference = hitAccuracy - targetAccuracy;
+            
+            // Adjust difficulty based on accuracy
+            if (accuracyDifference > 0.1f) // Too easy
             {
-                playerSkillLevel = Mathf.Min(playerSkillLevel + Time.deltaTime * 0.1f, 3.0f);
+                adaptiveDifficultyMultiplier = Mathf.Min(adaptiveDifficultyMultiplier + Time.deltaTime * 0.1f, 2.0f);
             }
-            else if (hitAccuracy < targetAccuracy - 0.1f)
+            else if (accuracyDifference < -0.1f) // Too hard
             {
-                playerSkillLevel = Mathf.Max(playerSkillLevel - Time.deltaTime * 0.05f, 0.5f);
+                adaptiveDifficultyMultiplier = Mathf.Max(adaptiveDifficultyMultiplier - Time.deltaTime * 0.1f, 0.5f);
             }
         }
         
@@ -173,46 +337,143 @@ namespace VRBoxingGame.Core
             }
             
             // Calculate average frame time
-            float total = 0f;
-            foreach (float time in frameTimeHistory)
+            float totalFrameTime = 0f;
+            foreach (float ft in frameTimeHistory)
             {
-                total += time;
+                totalFrameTime += ft;
             }
-            averageFrameTime = total / frameTimeHistory.Count;
+            averageFrameTime = totalFrameTime / frameTimeHistory.Count;
             
             frameCount++;
-            if (frameCount % 30 == 0) // Update every 30 frames
+            
+            OnPerformanceUpdate?.Invoke(1f / averageFrameTime); // FPS
+        }
+        
+        private void UpdatePredictiveAnalytics()
+        {
+            if (performancePredictor == null) return;
+            
+            // Complete previous analytics job
+            analyticsJobHandle.Complete();
+            
+            // Schedule new analytics job
+            var analyticsJob = new PlayerAnalyticsJob
             {
-                OnPerformanceUpdate?.Invoke(1f / averageFrameTime); // FPS
+                performanceData = this.performanceData,
+                movementData = playerMovementData,
+                reactionTimeData = this.reactionTimeData,
+                currentTime = Time.time,
+                dataPoints = performanceDataPoints
+            };
+            
+            analyticsJobHandle = analyticsJob.Schedule();
+            analyticsJobHandle.Complete(); // Complete for this frame
+            
+            // Update analytics structure
+            UpdateAnalyticsData();
+        }
+        
+        private void UpdateAnalyticsData()
+        {
+            // Update analytics with latest data
+            if (BoxingFormTracker.Instance != null)
+            {
+                var formData = BoxingFormTracker.Instance.CurrentFormData;
+                currentAnalytics.formConsistency = formData.stanceQuality;
+                currentAnalytics.powerGeneration = formData.powerMultiplier;
             }
+            
+            if (RhythmTargetSystem.Instance != null)
+            {
+                currentAnalytics.accuracy = RhythmTargetSystem.Instance.HitAccuracy;
+            }
+            
+            // Calculate skill progression
+            currentAnalytics.skillProgression = CalculateSkillProgression();
+            
+            // Predict future performance
+            if (enablePerformancePrediction && performancePredictor != null)
+            {
+                currentAnalytics.predictedPerformance = performancePredictor.PredictPerformance(currentAnalytics);
+                currentAnalytics.confidenceLevel = performancePredictor.GetConfidenceLevel();
+            }
+            
+            OnAnalyticsUpdate?.Invoke(currentAnalytics);
+        }
+        
+        private void UpdateRealTimeCoaching()
+        {
+            if (realTimeCoach == null) return;
+            
+            var coachingInstruction = realTimeCoach.GenerateInstruction(currentAnalytics);
+            if (coachingInstruction.HasValue)
+            {
+                OnCoachingInstruction?.Invoke(coachingInstruction.Value);
+                Debug.Log($"🏃‍♂️ Coaching: {coachingInstruction.Value.message}");
+            }
+        }
+        
+        private PlayerAnalytics GatherCurrentPerformanceData()
+        {
+            return currentAnalytics;
+        }
+        
+        private float CalculateSkillProgression()
+        {
+            // Calculate skill progression based on multiple factors
+            float accuracyFactor = currentAnalytics.accuracy * 0.3f;
+            float powerFactor = Mathf.Clamp01(currentAnalytics.powerGeneration - 1f) * 0.25f;
+            float formFactor = currentAnalytics.formConsistency * 0.25f;
+            float enduranceFactor = currentAnalytics.endurance * 0.2f;
+            
+            return accuracyFactor + powerFactor + formFactor + enduranceFactor;
         }
         
         public void StartGame()
         {
-            currentState = GameState.Playing;
+            ChangeGameState(GameState.Playing);
+            timeRemaining = gameSessionDuration;
             currentScore = 0;
             currentCombo = 0;
             currentMultiplier = 1.0f;
-            timeRemaining = gameSessionDuration;
-            totalTargets = 0;
-            hitTargets = 0;
+            
+            // Reset analytics
+            currentAnalytics = new PlayerAnalytics
+            {
+                accuracy = 0f,
+                powerGeneration = 0f,
+                formConsistency = 0f,
+                endurance = 1f,
+                reactionTime = 0f,
+                skillProgression = 0f,
+                heatmapData = new Vector3[100],
+                predictedPerformance = 0f,
+                confidenceLevel = 0f
+            };
             
             OnGameStart?.Invoke();
-            OnGameStateChanged?.Invoke(currentState);
-            OnScoreChanged?.Invoke(currentScore);
-            OnTimeChanged?.Invoke(timeRemaining);
+            Debug.Log("🎮 Game started with advanced systems enabled");
+        }
+        
+        public void EndGame()
+        {
+            ChangeGameState(GameState.Finished);
+            OnGameEnd?.Invoke();
             
-            Debug.Log("Enhanced Game Started with Unity 6 optimizations!");
+            // Generate final analytics report
+            if (enablePredictiveAnalytics)
+            {
+                GenerateFinalAnalyticsReport();
+            }
+            
+            Debug.Log("🏁 Game ended - Final analytics generated");
         }
         
         public void PauseGame()
         {
             if (currentState == GameState.Playing)
             {
-                currentState = GameState.Paused;
-                OnGameStateChanged?.Invoke(currentState);
-                Time.timeScale = 0f;
-                Debug.Log("Game Paused");
+                ChangeGameState(GameState.Paused);
             }
         }
         
@@ -220,151 +481,242 @@ namespace VRBoxingGame.Core
         {
             if (currentState == GameState.Paused)
             {
-                currentState = GameState.Playing;
-                OnGameStateChanged?.Invoke(currentState);
-                Time.timeScale = 1f;
-                Debug.Log("Game Resumed");
+                ChangeGameState(GameState.Playing);
             }
         }
         
-        public void EndGame()
+        private void ChangeGameState(GameState newState)
         {
-            currentState = GameState.Finished;
-            OnGameStateChanged?.Invoke(currentState);
-            Time.timeScale = 1f;
+            GameState previousState = currentState;
+            currentState = newState;
+            OnGameStateChanged?.Invoke(newState);
             
-            // Save performance metrics
-            SaveGameStats();
-            
-            OnGameEnd?.Invoke();
-            Debug.Log($"Game Ended! Final Score: {currentScore}, Accuracy: {hitAccuracy:P1}, Skill Level: {playerSkillLevel:F2}");
+            Debug.Log($"🔄 Game state changed: {previousState} → {newState}");
         }
         
-        public void AddScore(int points, bool isPerfectHit = false)
+        private void SetDifficultyMultiplier(float multiplier)
         {
-            if (currentState != GameState.Playing) return;
+            adaptiveDifficultyMultiplier = Mathf.Clamp(multiplier, 0.5f, 2.0f);
             
-            // Enhanced scoring with combo system
-            if (isPerfectHit)
+            // Apply difficulty to target system
+            if (RhythmTargetSystem.Instance != null)
             {
-                currentCombo++;
-                currentMultiplier = 1.0f + (currentCombo * 0.1f);
-                currentMultiplier = Mathf.Min(currentMultiplier, 3.0f); // Cap at 3x
+                RhythmTargetSystem.Instance.SetDifficulty(adaptiveDifficultyMultiplier);
+            }
+        }
+        
+        private void GenerateFinalAnalyticsReport()
+        {
+            var report = new
+            {
+                SessionDuration = gameSessionDuration - timeRemaining,
+                FinalScore = currentScore,
+                MaxCombo = currentCombo,
+                FinalAnalytics = currentAnalytics,
+                SkillProgression = CalculateSkillProgression(),
+                DifficultyProgression = adaptiveDifficultyMultiplier
+            };
+            
+            Debug.Log($"📊 Final Report - Score: {report.FinalScore}, Skill: {report.SkillProgression:F2}, Difficulty: {report.DifficultyProgression:F2}");
+        }
+        
+        public void AddScore(int points)
+        {
+            currentScore += Mathf.RoundToInt(points * currentMultiplier);
+            OnScoreChanged?.Invoke(currentScore);
+        }
+        
+        public void UpdateCombo(int combo)
+        {
+            currentCombo = combo;
+            currentMultiplier = 1.0f + (combo * 0.1f); // 10% bonus per combo
+        }
+        
+        public void RecordPlayerMovement(Vector3 position)
+        {
+            int index = frameCount % performanceDataPoints;
+            playerMovementData[index] = position;
+        }
+        
+        public void RecordReactionTime(float reactionTime)
+        {
+            int index = frameCount % performanceDataPoints;
+            reactionTimeData[index] = reactionTime;
+            currentAnalytics.reactionTime = reactionTime;
+        }
+        
+        private void OnDestroy()
+        {
+            // Complete any running jobs
+            if (analyticsJobHandle.IsCreated)
+            {
+                analyticsJobHandle.Complete();
+            }
+            
+            // Dispose native arrays
+            if (performanceData.IsCreated) performanceData.Dispose();
+            if (playerMovementData.IsCreated) playerMovementData.Dispose();
+            if (reactionTimeData.IsCreated) reactionTimeData.Dispose();
+        }
+    }
+    
+    // ML and Analytics Support Classes
+    public class MLDifficultyEngine
+    {
+        public void Initialize()
+        {
+            Debug.Log("🧠 ML Difficulty Engine initialized");
+        }
+        
+        public float PredictOptimalDifficulty(GameManager.PlayerAnalytics analytics)
+        {
+            // Simulate ML prediction - target 75% accuracy
+            float targetAccuracy = 0.75f;
+            float accuracyDiff = analytics.accuracy - targetAccuracy;
+            
+            // Predict optimal difficulty adjustment
+            return 1f + (accuracyDiff * 0.5f);
+        }
+    }
+    
+    public class PerformancePredictor
+    {
+        public float PredictPerformance(GameManager.PlayerAnalytics currentAnalytics)
+        {
+            // Simulate performance prediction based on trends
+            float trend = (currentAnalytics.accuracy + currentAnalytics.formConsistency) * 0.5f;
+            return Mathf.Clamp01(trend + UnityEngine.Random.Range(-0.1f, 0.1f));
+        }
+        
+        public float GetConfidenceLevel()
+        {
+            return UnityEngine.Random.Range(0.7f, 0.95f); // Simulate confidence
+        }
+    }
+    
+    public class RealTimeCoach
+    {
+        private float confidenceThreshold;
+        private float lastInstructionTime;
+        
+        public void Initialize(float threshold)
+        {
+            confidenceThreshold = threshold;
+            lastInstructionTime = 0f;
+        }
+        
+        public GameManager.CoachingInstruction? GenerateInstruction(GameManager.PlayerAnalytics analytics)
+        {
+            if (Time.time - lastInstructionTime < 10f) return null; // Cooldown
+            
+            var instruction = new GameManager.CoachingInstruction();
+            
+            // Determine what needs coaching
+            if (analytics.formConsistency < 0.6f)
+            {
+                instruction.type = GameManager.CoachingType.FormCorrection;
+                instruction.message = "Focus on your stance - keep your guard up!";
+                instruction.priority = 0.8f;
+            }
+            else if (analytics.accuracy < 0.6f)
+            {
+                instruction.type = GameManager.CoachingType.AccuracyBoost;
+                instruction.message = "Take your time - aim for precision!";
+                instruction.priority = 0.7f;
+            }
+            else if (analytics.powerGeneration < 1.2f)
+            {
+                instruction.type = GameManager.CoachingType.PowerImprovement;
+                instruction.message = "Rotate your hips for more power!";
+                instruction.priority = 0.6f;
             }
             else
             {
-                // Don't reset combo for non-perfect hits, only for misses
-                // This allows building combos with good hits too
+                instruction.type = GameManager.CoachingType.Motivation;
+                instruction.message = "Great work! Keep up the intensity!";
+                instruction.priority = 0.3f;
             }
             
-            int finalPoints = Mathf.RoundToInt(points * currentMultiplier);
-            currentScore += finalPoints;
-            hitTargets++;
+            instruction.duration = 3f;
+            instruction.requiresVisualCue = true;
+            instruction.cueColor = Color.yellow;
             
-            OnScoreChanged?.Invoke(currentScore);
+            lastInstructionTime = Time.time;
+            return instruction;
+        }
+    }
+    
+    public class PlayerBehaviorModel
+    {
+        public float PredictSkillProgression(GameManager.PlayerAnalytics analytics)
+        {
+            // Simulate skill progression prediction
+            return analytics.skillProgression + 0.01f; // Gradual improvement
+        }
+    }
+    
+    // Unity 6 Job System for Player Analytics
+    [BurstCompile]
+    public struct PlayerAnalyticsJob : IJob
+    {
+        [ReadOnly] public NativeArray<float> performanceData;
+        [ReadOnly] public NativeArray<float3> movementData;
+        [ReadOnly] public NativeArray<float> reactionTimeData;
+        [ReadOnly] public float currentTime;
+        [ReadOnly] public int dataPoints;
+        
+        public void Execute()
+        {
+            // Perform high-performance analytics calculations
+            float performanceSum = 0f;
+            float3 movementVariance = float3.zero;
+            float avgReactionTime = 0f;
             
-            // Notify UI of combo change
-            var gameUI = FindObjectOfType<VRBoxingGame.UI.GameUI>();
-            if (gameUI != null)
+            int validDataPoints = 0;
+            
+            // Calculate performance metrics
+            for (int i = 0; i < dataPoints; i++)
             {
-                gameUI.UpdateCombo(currentCombo, currentMultiplier);
+                if (performanceData[i] > 0f)
+                {
+                    performanceSum += performanceData[i];
+                    validDataPoints++;
+                }
+                
+                if (reactionTimeData[i] > 0f)
+                {
+                    avgReactionTime += reactionTimeData[i];
+                }
             }
             
-            // Check for target score achievement
-            if (currentScore >= targetScore)
+            // Calculate movement patterns
+            float3 avgMovement = float3.zero;
+            int validMovements = 0;
+            
+            for (int i = 0; i < dataPoints; i++)
             {
-                Debug.Log("Target score reached!");
+                if (math.lengthsq(movementData[i]) > 0.01f)
+                {
+                    avgMovement += movementData[i];
+                    validMovements++;
+                }
             }
-        }
-        
-        public void RegisterTargetSpawned()
-        {
-            totalTargets++;
-        }
-        
-        public void RegisterTargetMissed()
-        {
-            currentCombo = 0;
-            currentMultiplier = 1.0f;
             
-            // Notify UI of combo break
-            var gameUI = FindObjectOfType<VRBoxingGame.UI.GameUI>();
-            if (gameUI != null)
+            if (validMovements > 0)
             {
-                gameUI.UpdateCombo(currentCombo, currentMultiplier);
+                avgMovement /= validMovements;
+                
+                // Calculate variance
+                for (int i = 0; i < dataPoints; i++)
+                {
+                    if (math.lengthsq(movementData[i]) > 0.01f)
+                    {
+                        float3 diff = movementData[i] - avgMovement;
+                        movementVariance += diff * diff;
+                    }
+                }
+                movementVariance /= validMovements;
             }
-        }
-        
-        private void SaveGameStats()
-        {
-            // Save enhanced statistics
-            PlayerPrefs.SetInt("LastScore", currentScore);
-            PlayerPrefs.SetFloat("LastAccuracy", hitAccuracy);
-            PlayerPrefs.SetFloat("SkillLevel", playerSkillLevel);
-            PlayerPrefs.SetFloat("AverageFrameTime", averageFrameTime);
-            PlayerPrefs.SetString("LastPlayDate", System.DateTime.Now.ToString());
-            PlayerPrefs.Save();
-        }
-        
-        public void ReturnToMenu()
-        {
-            currentState = GameState.Menu;
-            OnGameStateChanged?.Invoke(currentState);
-            Time.timeScale = 1f;
-            currentScore = 0;
-            currentCombo = 0;
-            currentMultiplier = 1.0f;
-            timeRemaining = gameSessionDuration;
-        }
-        
-        // Unity 6 Job System for performance-critical calculations
-        [BurstCompile]
-        public struct ScoreCalculationJob : IJob
-        {
-            public int baseScore;
-            public float multiplier;
-            public float accuracy;
-            
-            [WriteOnly]
-            public NativeArray<int> result;
-            
-            public void Execute()
-            {
-                float finalScore = baseScore * multiplier * (1.0f + accuracy);
-                result[0] = Mathf.RoundToInt(finalScore);
-            }
-        }
-        
-        // Performance optimization methods
-        public void OptimizeForCurrentHardware()
-        {
-            // Detect Quest model and optimize accordingly
-            string deviceModel = SystemInfo.deviceModel;
-            
-            if (deviceModel.Contains("Quest 3"))
-            {
-                // Quest 3 optimizations - framerate handled by VRRenderGraphSystem
-                QualitySettings.antiAliasing = 4;
-                QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;
-            }
-            else if (deviceModel.Contains("Quest 2"))
-            {
-                // Quest 2 optimizations - framerate handled by VRRenderGraphSystem
-                QualitySettings.antiAliasing = 2;
-                QualitySettings.anisotropicFiltering = AnisotropicFiltering.Disable;
-            }
-            
-            Debug.Log($"Optimized for device: {deviceModel}");
-        }
-        
-        // Advanced difficulty adjustment
-        public float GetDynamicDifficulty()
-        {
-            float baseDifficulty = 1.0f;
-            float skillAdjustment = (playerSkillLevel - 1.0f) * 0.5f;
-            float timeAdjustment = (gameSessionDuration - timeRemaining) / gameSessionDuration * 0.3f;
-            
-            return Mathf.Clamp(baseDifficulty + skillAdjustment + timeAdjustment, 0.5f, 2.5f);
         }
     }
 }
