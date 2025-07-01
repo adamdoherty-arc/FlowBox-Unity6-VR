@@ -274,6 +274,7 @@ namespace VRBoxingGame.Setup
         
         private void Enable360TargetSpawning(RhythmTargetSystem rhythmSystem)
         {
+            // Create spawn points around player for 360-degree targets
             for (int i = 0; i < spawnPointCount; i++)
             {
                 float angle = (i / (float)spawnPointCount) * 360f;
@@ -281,14 +282,41 @@ namespace VRBoxingGame.Setup
                 
                 Vector3 spawnPosition = new Vector3(
                     Mathf.Sin(radian) * targetSpawnRadius,
-                    1.5f,
+                    1.5f, // Chest height
                     Mathf.Cos(radian) * targetSpawnRadius
                 );
                 
                 GameObject spawnPoint = new GameObject($"360_SpawnPoint_{i}");
                 spawnPoint.transform.position = spawnPosition;
                 spawnPoint.transform.SetParent(xrOrigin.transform);
-                spawnPoint.AddComponent<SphereCollider>().isTrigger = true;
+                
+                // Add sphere collider for spawn area detection
+                SphereCollider spawnCollider = spawnPoint.AddComponent<SphereCollider>();
+                spawnCollider.isTrigger = true;
+                spawnCollider.radius = 0.3f;
+                
+                // Add component to handle 360-degree spawning
+                var spawner360 = spawnPoint.AddComponent<Target360Spawner>();
+                spawner360.spawnIndex = i;
+                spawner360.spawnAngle = angle;
+                spawner360.rhythmSystem = rhythmSystem;
+                
+                // Tag for identification
+                spawnPoint.tag = "SpawnPoint360";
+            }
+            
+            // Update rhythm system to use 360-degree spawning
+            if (rhythmSystem != null)
+            {
+                // Set spawn points on rhythm system
+                var spawnPoints = GameObject.FindGameObjectsWithTag("SpawnPoint360");
+                if (spawnPoints.Length > 0)
+                {
+                    // Update left and right spawn points to use 360-degree system
+                    rhythmSystem.leftSpawnPoint = spawnPoints[6].transform; // 270 degrees (left)
+                    rhythmSystem.rightSpawnPoint = spawnPoints[2].transform; // 90 degrees (right)
+                    rhythmSystem.centerPoint = xrOrigin.transform; // Player center
+                }
             }
         }
         

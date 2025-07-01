@@ -192,14 +192,14 @@ namespace VRBoxingGame.Environment
         
         private void CreateEnvironmentGeometry()
         {
-            // Create distant mountains/hills
-            for (int i = 0; i < 8; i++)
+            // Create distant mountains/hills in full 360 degrees for immersive experience
+            for (int i = 0; i < 16; i++) // Increased for better 360 coverage
             {
                 GameObject mountain = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 mountain.name = $"Mountain_{i}";
                 mountain.transform.SetParent(transform);
                 
-                float angle = (i / 8f) * 360f;
+                float angle = (i / 16f) * 360f;
                 float distance = environmentScale;
                 float height = Random.Range(30f, 80f);
                 
@@ -221,6 +221,9 @@ namespace VRBoxingGame.Environment
                 mountainMat.SetFloat("_Metallic", 0f);
                 mountainMat.SetFloat("_Smoothness", 0.1f);
                 mountain.GetComponent<Renderer>().material = mountainMat;
+                
+                // Add reactive component for music response
+                mountain.AddComponent<ReactiveEnvironmentObject>();
             }
             
             // Create ground plane

@@ -278,17 +278,43 @@ namespace VRBoxingGame.Boxing
         
         private float AnalyzePunchForm()
         {
-            if (!enableFormAnalysis || wristTransform == null || knuckleTransform == null)
+            if (!enableFormAnalysis)
                 return 1f;
             
-            // Analyze wrist alignment and knuckle position
-            Vector3 wristToKnuckle = (knuckleTransform.position - wristTransform.position).normalized;
-            Vector3 punchDirection = smoothedVelocity.normalized;
+            float formScore = 1f;
             
-            float alignment = Vector3.Dot(wristToKnuckle, punchDirection);
-            float formScore = Mathf.Clamp01(alignment);
+            // Basic wrist alignment if transforms available
+            if (wristTransform != null && knuckleTransform != null)
+            {
+                Vector3 wristToKnuckle = (knuckleTransform.position - wristTransform.position).normalized;
+                Vector3 punchDirection = smoothedVelocity.normalized;
+                float alignment = Vector3.Dot(wristToKnuckle, punchDirection);
+                formScore *= Mathf.Clamp01(alignment);
+            }
             
-            return formScore;
+            // Integrate with BoxingFormTracker for enhanced analysis
+            if (BoxingFormTracker.Instance != null)
+            {
+                float stanceMultiplier = BoxingFormTracker.Instance.GetCurrentPowerMultiplier();
+                float accuracyBonus = BoxingFormTracker.Instance.GetCurrentAccuracyBonus();
+                
+                // Apply boxing form bonuses
+                formScore *= stanceMultiplier;
+                formScore += accuracyBonus;
+                
+                // Check if punch matches current stance
+                var currentStance = BoxingFormTracker.Instance.CurrentStance;
+                bool correctHandForStance = 
+                    (currentStance == BoxingFormTracker.BoxingStance.Orthodox && !isLeftHand) ||
+                    (currentStance == BoxingFormTracker.BoxingStance.Southpaw && isLeftHand);
+                
+                if (correctHandForStance)
+                {
+                    formScore *= 1.2f; // 20% bonus for using dominant hand
+                }
+            }
+            
+            return Mathf.Clamp01(formScore);
         }
         
         private void UpdatePunchStatistics(float punchPower)

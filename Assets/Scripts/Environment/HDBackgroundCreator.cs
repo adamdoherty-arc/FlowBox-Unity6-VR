@@ -510,19 +510,332 @@ namespace VRBoxingGame.Environment
             }
         }
         
-        private void CreateCrystalFormations(Transform parent) { /* Implementation */ }
-        private void CreateReflectiveSurfaces(Transform parent) { /* Implementation */ }
-        private void CreateCrystalLighting(Transform parent) { /* Implementation */ }
-        private void CreateGemstoneEffects(Transform parent) { /* Implementation */ }
-        private void CreateAuroraParticles(Transform parent) { /* Implementation */ }
-        private void CreateIcyTerrain(Transform parent) { /* Implementation */ }
-        private void CreateNorthernLights(Transform parent) { /* Implementation */ }
-        private void CreateSnowEffect(Transform parent) { /* Implementation */ }
-        private void CreateCoralReefs(Transform parent) { /* Implementation */ }
-        private void CreateBioluminescence(Transform parent) { /* Implementation */ }
-        private void CreateWaterCaustics(Transform parent) { /* Implementation */ }
-        private void CreateSeaLife(Transform parent) { /* Implementation */ }
-        private void CreateBubbleEffects(Transform parent) { /* Implementation */ }
+        private void CreateCrystalFormations(Transform parent)
+        {
+            // Create large crystal formations around player in 360 degrees
+            for (int i = 0; i < 12; i++)
+            {
+                GameObject crystal = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                crystal.name = $"CrystalFormation_{i}";
+                crystal.transform.SetParent(parent);
+                
+                float angle = (i / 12f) * 360f;
+                float distance = Random.Range(40f, 80f);
+                float height = Random.Range(15f, 50f);
+                
+                crystal.transform.position = new Vector3(
+                    Mathf.Sin(angle * Mathf.Deg2Rad) * distance,
+                    height / 2f,
+                    Mathf.Cos(angle * Mathf.Deg2Rad) * distance
+                );
+                
+                crystal.transform.localScale = new Vector3(
+                    Random.Range(8f, 20f),
+                    height,
+                    Random.Range(8f, 20f)
+                );
+                
+                // Crystal material with transparency and glow
+                Material crystalMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                crystalMat.color = new Color(0.8f, 0.9f, 1f, 0.7f);
+                crystalMat.SetFloat("_Metallic", 0.1f);
+                crystalMat.SetFloat("_Smoothness", 0.95f);
+                crystal.GetComponent<Renderer>().material = crystalMat;
+                
+                // Add reactive component for 360-degree interaction
+                crystal.AddComponent<ReactiveEnvironmentObject>();
+            }
+        }
+        
+        private void CreateReflectiveSurfaces(Transform parent)
+        {
+            // Create reflective crystal walls
+            GameObject reflectiveFloor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            reflectiveFloor.name = "ReflectiveFloor";
+            reflectiveFloor.transform.SetParent(parent);
+            reflectiveFloor.transform.localScale = Vector3.one * 50f;
+            reflectiveFloor.transform.position = new Vector3(0, -2f, 0);
+            
+            Material reflectiveMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            reflectiveMat.color = new Color(0.9f, 0.95f, 1f, 0.8f);
+            reflectiveMat.SetFloat("_Metallic", 1f);
+            reflectiveMat.SetFloat("_Smoothness", 1f);
+            reflectiveFloor.GetComponent<Renderer>().material = reflectiveMat;
+        }
+        
+        private void CreateCrystalLighting(Transform parent)
+        {
+            // Create multiple colored lights for crystal ambiance
+            Color[] crystalColors = { Color.cyan, Color.magenta, Color.blue, Color.white };
+            
+            for (int i = 0; i < 8; i++)
+            {
+                GameObject lightObj = new GameObject($"CrystalLight_{i}");
+                lightObj.transform.SetParent(parent);
+                
+                float angle = (i / 8f) * 360f;
+                lightObj.transform.position = new Vector3(
+                    Mathf.Sin(angle * Mathf.Deg2Rad) * 30f,
+                    Random.Range(10f, 30f),
+                    Mathf.Cos(angle * Mathf.Deg2Rad) * 30f
+                );
+                
+                Light crystalLight = lightObj.AddComponent<Light>();
+                crystalLight.type = LightType.Point;
+                crystalLight.color = crystalColors[Random.Range(0, crystalColors.Length)];
+                crystalLight.intensity = Random.Range(1f, 3f);
+                crystalLight.range = Random.Range(20f, 40f);
+                crystalLight.shadows = LightShadows.Soft;
+                
+                // Add flicker effect
+                lightObj.AddComponent<LightFlicker>();
+            }
+        }
+        
+        private void CreateGemstoneEffects(Transform parent)
+        {
+            // Create floating gemstone particles
+            GameObject gemstoneSystem = new GameObject("GemstoneParticles");
+            gemstoneSystem.transform.SetParent(parent);
+            
+            ParticleSystem particles = gemstoneSystem.AddComponent<ParticleSystem>();
+            var main = particles.main;
+            main.startLifetime = 10f;
+            main.startSpeed = 1f;
+            main.startSize = 0.3f;
+            main.startColor = Color.cyan;
+            main.maxParticles = 200;
+            
+            var emission = particles.emission;
+            emission.rateOverTime = 20;
+            
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 50f;
+        }
+        
+        private void CreateAuroraParticles(Transform parent)
+        {
+            // Create aurora-like particle effects in 360 degrees
+            GameObject auroraSystem = new GameObject("AuroraParticles");
+            auroraSystem.transform.SetParent(parent);
+            auroraSystem.transform.position = new Vector3(0, 30f, 0);
+            
+            ParticleSystem aurora = auroraSystem.AddComponent<ParticleSystem>();
+            var main = aurora.main;
+            main.startLifetime = 15f;
+            main.startSpeed = 2f;
+            main.startSize = new ParticleSystem.MinMaxCurve(5f, 15f);
+            main.startColor = new Color(0.2f, 1f, 0.8f, 0.3f);
+            main.maxParticles = 500;
+            
+            var emission = aurora.emission;
+            emission.rateOverTime = 30;
+            
+            var shape = aurora.shape;
+            shape.shapeType = ParticleSystemShapeType.Hemisphere;
+            shape.radius = 100f;
+        }
+        
+        private void CreateIcyTerrain(Transform parent)
+        {
+            // Create icy ground with frozen textures
+            for (int i = 0; i < 16; i++)
+            {
+                GameObject iceChunk = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                iceChunk.name = $"IceChunk_{i}";
+                iceChunk.transform.SetParent(parent);
+                
+                float angle = (i / 16f) * 360f;
+                iceChunk.transform.position = new Vector3(
+                    Mathf.Sin(angle * Mathf.Deg2Rad) * Random.Range(20f, 60f),
+                    Random.Range(-2f, 2f),
+                    Mathf.Cos(angle * Mathf.Deg2Rad) * Random.Range(20f, 60f)
+                );
+                
+                iceChunk.transform.localScale = new Vector3(
+                    Random.Range(8f, 15f),
+                    Random.Range(2f, 8f),
+                    Random.Range(8f, 15f)
+                );
+                
+                Material iceMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                iceMat.color = new Color(0.9f, 0.95f, 1f, 0.8f);
+                iceMat.SetFloat("_Metallic", 0.2f);
+                iceMat.SetFloat("_Smoothness", 0.9f);
+                iceChunk.GetComponent<Renderer>().material = iceMat;
+            }
+        }
+        
+        private void CreateNorthernLights(Transform parent)
+        {
+            // Create multiple directional lights to simulate northern lights
+            for (int i = 0; i < 4; i++)
+            {
+                GameObject lightObj = new GameObject($"NorthernLight_{i}");
+                lightObj.transform.SetParent(parent);
+                lightObj.transform.position = new Vector3(0, 50f, 0);
+                lightObj.transform.rotation = Quaternion.Euler(Random.Range(-30f, -60f), i * 90f, 0);
+                
+                Light northernLight = lightObj.AddComponent<Light>();
+                northernLight.type = LightType.Directional;
+                northernLight.color = new Color(Random.Range(0f, 1f), 1f, Random.Range(0.5f, 1f), 0.5f);
+                northernLight.intensity = Random.Range(0.3f, 0.8f);
+                northernLight.shadows = LightShadows.None;
+                
+                // Add dynamic intensity changes
+                lightObj.AddComponent<LightFlicker>();
+            }
+        }
+        
+        private void CreateSnowEffect(Transform parent)
+        {
+            // Create falling snow particles
+            GameObject snowSystem = new GameObject("SnowParticles");
+            snowSystem.transform.SetParent(parent);
+            snowSystem.transform.position = new Vector3(0, 40f, 0);
+            
+            ParticleSystem snow = snowSystem.AddComponent<ParticleSystem>();
+            var main = snow.main;
+            main.startLifetime = 8f;
+            main.startSpeed = 2f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.1f, 0.5f);
+            main.startColor = Color.white;
+            main.maxParticles = 1000;
+            
+            var emission = snow.emission;
+            emission.rateOverTime = 100;
+            
+            var shape = snow.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(100f, 1f, 100f);
+            
+            var velocityOverLifetime = snow.velocityOverLifetime;
+            velocityOverLifetime.enabled = true;
+            velocityOverLifetime.y = new ParticleSystem.MinMaxCurve(-3f, -1f);
+        }
+        
+        private void CreateCoralReefs(Transform parent)
+        {
+            // Create colorful coral formations in 360 degrees
+            Color[] coralColors = { Color.red, Color.yellow, Color.magenta, Color.cyan };
+            
+            for (int i = 0; i < 24; i++)
+            {
+                GameObject coral = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                coral.name = $"Coral_{i}";
+                coral.transform.SetParent(parent);
+                
+                float angle = (i / 24f) * 360f;
+                coral.transform.position = new Vector3(
+                    Mathf.Sin(angle * Mathf.Deg2Rad) * Random.Range(15f, 40f),
+                    Random.Range(-3f, 8f),
+                    Mathf.Cos(angle * Mathf.Deg2Rad) * Random.Range(15f, 40f)
+                );
+                
+                coral.transform.localScale = Vector3.one * Random.Range(3f, 8f);
+                
+                Material coralMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                coralMat.color = coralColors[Random.Range(0, coralColors.Length)];
+                coralMat.SetFloat("_Metallic", 0f);
+                coralMat.SetFloat("_Smoothness", 0.3f);
+                coral.GetComponent<Renderer>().material = coralMat;
+                
+                coral.AddComponent<ReactiveEnvironmentObject>();
+            }
+        }
+        
+        private void CreateBioluminescence(Transform parent)
+        {
+            // Create glowing particles that react to movement
+            GameObject bioSystem = new GameObject("BioluminescentParticles");
+            bioSystem.transform.SetParent(parent);
+            
+            ParticleSystem bio = bioSystem.AddComponent<ParticleSystem>();
+            var main = bio.main;
+            main.startLifetime = 5f;
+            main.startSpeed = 0.5f;
+            main.startSize = 0.2f;
+            main.startColor = new Color(0f, 1f, 0.8f, 0.7f);
+            main.maxParticles = 300;
+            
+            var emission = bio.emission;
+            emission.rateOverTime = 60;
+            
+            var shape = bio.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 30f;
+        }
+        
+        private void CreateWaterCaustics(Transform parent)
+        {
+            // Create caustic light patterns on surfaces
+            GameObject causticsObj = new GameObject("WaterCaustics");
+            causticsObj.transform.SetParent(parent);
+            
+            Light causticLight = causticsObj.AddComponent<Light>();
+            causticLight.type = LightType.Directional;
+            causticLight.color = new Color(0.7f, 0.9f, 1f);
+            causticLight.intensity = 1.5f;
+            causticLight.shadows = LightShadows.Soft;
+            
+            // Add animated caustic patterns (simplified)
+            causticsObj.AddComponent<LightFlicker>();
+        }
+        
+        private void CreateSeaLife(Transform parent)
+        {
+            // Create animated sea creatures swimming around
+            for (int i = 0; i < 15; i++)
+            {
+                GameObject fish = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                fish.name = $"SeaCreature_{i}";
+                fish.transform.SetParent(parent);
+                
+                float angle = Random.Range(0f, 360f);
+                fish.transform.position = new Vector3(
+                    Mathf.Sin(angle * Mathf.Deg2Rad) * Random.Range(20f, 50f),
+                    Random.Range(-5f, 10f),
+                    Mathf.Cos(angle * Mathf.Deg2Rad) * Random.Range(20f, 50f)
+                );
+                
+                fish.transform.localScale = Vector3.one * Random.Range(1f, 3f);
+                
+                Material fishMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                fishMat.color = new Color(Random.value, Random.value, Random.value);
+                fish.GetComponent<Renderer>().material = fishMat;
+                
+                // Add simple movement animation
+                fish.AddComponent<PlanetRotation>();
+            }
+        }
+        
+        private void CreateBubbleEffects(Transform parent)
+        {
+            // Create rising bubble particles
+            GameObject bubbleSystem = new GameObject("BubbleParticles");
+            bubbleSystem.transform.SetParent(parent);
+            bubbleSystem.transform.position = new Vector3(0, -10f, 0);
+            
+            ParticleSystem bubbles = bubbleSystem.AddComponent<ParticleSystem>();
+            var main = bubbles.main;
+            main.startLifetime = 6f;
+            main.startSpeed = 3f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.1f, 1f);
+            main.startColor = new Color(1f, 1f, 1f, 0.3f);
+            main.maxParticles = 200;
+            
+            var emission = bubbles.emission;
+            emission.rateOverTime = 30;
+            
+            var shape = bubbles.shape;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = 25f;
+            
+            var velocityOverLifetime = bubbles.velocityOverLifetime;
+            velocityOverLifetime.enabled = true;
+            velocityOverLifetime.y = new ParticleSystem.MinMaxCurve(2f, 4f);
+        }
     }
     
     // Helper components
