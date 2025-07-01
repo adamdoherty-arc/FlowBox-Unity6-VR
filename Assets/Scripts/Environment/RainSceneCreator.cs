@@ -3,6 +3,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using System.Collections;
 using System.Threading.Tasks;
+using VRBoxingGame.Performance;
 
 namespace VRBoxingGame.Environment
 {
@@ -178,14 +179,18 @@ namespace VRBoxingGame.Environment
         
         private Material CreateStormSkybox()
         {
-            Material skybox = new Material(Shader.Find("Skybox/Gradient"));
-            skybox.name = "StormSkybox";
+            Material skybox = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetSkyboxMaterial(new Color(0.2f, 0.2f, 0.3f), new Color(0.6f, 0.6f, 0.7f)) :
+                new Material(Shader.Find("Skybox/Gradient"));
+            skybox.SetColor("_Color1", new Color(0.2f, 0.2f, 0.3f)); // Dark storm clouds
+            skybox.SetColor("_Color2", new Color(0.6f, 0.6f, 0.7f)); // Lighter gray
+            skybox.SetFloat("_Exponent", 2f);
             
-            // Dark storm colors
-            skybox.SetColor("_Color1", new Color(0.1f, 0.15f, 0.2f)); // Dark blue-gray
-            skybox.SetColor("_Color2", new Color(0.05f, 0.05f, 0.1f)); // Very dark
-            skybox.SetFloat("_Exponent", 1.5f);
-            skybox.SetFloat("_Intensity", 0.8f);
+            RenderSettings.skybox = skybox;
+            RenderSettings.fog = true;
+            RenderSettings.fogColor = new Color(0.5f, 0.5f, 0.6f);
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogDensity = 0.02f;
             
             return skybox;
         }
@@ -193,51 +198,62 @@ namespace VRBoxingGame.Environment
         private void CreateEnvironmentGeometry()
         {
             // Create distant mountains/hills in full 360 degrees for immersive experience
-            for (int i = 0; i < 16; i++) // Increased for better 360 coverage
+            CreateMountains();
+            CreateGround();
+            
+            Debug.Log("Environment setup complete");
+        }
+        
+        private void CreateMountains()
+        {
+            for (int i = 0; i < 16; i++)
             {
                 GameObject mountain = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 mountain.name = $"Mountain_{i}";
                 mountain.transform.SetParent(transform);
                 
                 float angle = (i / 16f) * 360f;
-                float distance = environmentScale;
-                float height = Random.Range(30f, 80f);
+                float distance = Random.Range(150f, 300f);
                 
                 mountain.transform.position = new Vector3(
                     Mathf.Sin(angle * Mathf.Deg2Rad) * distance,
-                    height / 2f - 10f,
+                    Random.Range(20f, 80f),
                     Mathf.Cos(angle * Mathf.Deg2Rad) * distance
                 );
                 
                 mountain.transform.localScale = new Vector3(
-                    Random.Range(40f, 80f),
-                    height,
-                    Random.Range(40f, 80f)
+                    Random.Range(30f, 60f),
+                    Random.Range(40f, 120f),
+                    Random.Range(30f, 60f)
                 );
                 
-                // Dark material for silhouettes
-                Material mountainMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                mountainMat.color = new Color(0.1f, 0.1f, 0.15f);
-                mountainMat.SetFloat("_Metallic", 0f);
-                mountainMat.SetFloat("_Smoothness", 0.1f);
+                Material mountainMat = MaterialPool.Instance != null ? 
+                    MaterialPool.Instance.GetURPLitMaterial(new Color(0.3f, 0.4f, 0.3f)) :
+                    new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                mountainMat.color = new Color(0.3f, 0.4f, 0.3f);
+                mountainMat.SetFloat("_Metallic", 0.1f);
+                mountainMat.SetFloat("_Smoothness", 0.2f);
                 mountain.GetComponent<Renderer>().material = mountainMat;
                 
                 // Add reactive component for music response
                 mountain.AddComponent<ReactiveEnvironmentObject>();
             }
-            
-            // Create ground plane
+        }
+        
+        private void CreateGround()
+        {
             GameObject ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "RainGround";
             ground.transform.SetParent(transform);
-            ground.transform.localScale = Vector3.one * environmentScale / 10f;
-            ground.transform.position = new Vector3(0, -5f, 0);
+            ground.transform.position = new Vector3(0, -2f, 0);
+            ground.transform.localScale = Vector3.one * 50f;
             
-            // Wet ground material
-            Material groundMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            groundMat.color = new Color(0.2f, 0.25f, 0.3f);
-            groundMat.SetFloat("_Metallic", 0.8f);
-            groundMat.SetFloat("_Smoothness", 0.9f);
+            Material groundMat = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetURPLitMaterial(new Color(0.2f, 0.3f, 0.2f)) :
+                new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            groundMat.color = new Color(0.2f, 0.3f, 0.2f);
+            groundMat.SetFloat("_Metallic", 0f);
+            groundMat.SetFloat("_Smoothness", 0.1f);
             ground.GetComponent<Renderer>().material = groundMat;
         }
         

@@ -651,19 +651,13 @@ namespace VRBoxingGame.Environment
         
         private void Start()
         {
-            // Load traditional materials if not assigned
+            // Direct asset references - assign in inspector
             if (traditionalWhiteMaterial == null)
-            {
-                traditionalWhiteMaterial = Resources.Load<Material>("Materials/WhiteCircleMaterial");
-            }
+                Debug.LogWarning("SceneTransformationSystem: WhiteCircleMaterial not assigned in inspector");
             if (traditionalGrayMaterial == null)
-            {
-                traditionalGrayMaterial = Resources.Load<Material>("Materials/GrayCircleMaterial");
-            }
+                Debug.LogWarning("SceneTransformationSystem: GrayCircleMaterial not assigned in inspector");
             if (traditionalBlockMaterial == null)
-            {
-                traditionalBlockMaterial = Resources.Load<Material>("Materials/RedBlockMaterial");
-            }
+                Debug.LogWarning("SceneTransformationSystem: RedBlockMaterial not assigned in inspector");
             
             Debug.Log($"Scene Transformation System initialized. Traditional mode: {useTraditionalTargets}");
         }

@@ -8,6 +8,7 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Burst;
 using System.Threading.Tasks;
+using VRBoxingGame.Performance;
 
 namespace VRBoxingGame.Environment
 {
@@ -172,10 +173,7 @@ namespace VRBoxingGame.Environment
         
         private float3 GetPlayerPosition()
         {
-            if (Camera.main != null)
-            {
-                return Camera.main.transform.position;
-            }
+            return VRBoxingGame.Core.VRCameraHelper.PlayerPosition;
             return float3.zero;
         }
         
@@ -305,9 +303,12 @@ namespace VRBoxingGame.Environment
             var renderer = fish.GetComponent<Renderer>();
             if (renderer != null)
             {
-                Material fishMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                fishMat.color = circleType == RhythmTargetSystem.CircleType.White ? 
-                    new Color(0.8f, 0.9f, 1f, 0.9f) : new Color(0.5f, 0.6f, 0.8f, 0.9f);
+                Material fishMat = MaterialPool.Instance != null ? 
+                    MaterialPool.Instance.GetURPLitMaterial(GetFishColor(circleType)) :
+                    new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                fishMat.color = GetFishColor(circleType);
+                fishMat.SetFloat("_Metallic", 0.2f);
+                fishMat.SetFloat("_Smoothness", 0.8f);
                 renderer.material = fishMat;
             }
             
@@ -325,8 +326,12 @@ namespace VRBoxingGame.Environment
             var renderer = shark.GetComponent<Renderer>();
             if (renderer != null)
             {
-                Material sharkMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                sharkMat.color = new Color(0.3f, 0.3f, 0.5f, 0.9f);
+                Material sharkMat = MaterialPool.Instance != null ? 
+                    MaterialPool.Instance.GetURPLitMaterial(new Color(0.3f, 0.3f, 0.5f)) :
+                    new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                sharkMat.color = new Color(0.3f, 0.3f, 0.5f);
+                sharkMat.SetFloat("_Metallic", 0.1f);
+                sharkMat.SetFloat("_Smoothness", 0.9f);
                 renderer.material = sharkMat;
             }
             
@@ -451,18 +456,24 @@ namespace VRBoxingGame.Environment
             }
         }
         
-        private Color GetFishColor(FishSchool.SchoolType schoolType)
+        private Color GetFishColor(RhythmTargetSystem.CircleType circleType)
         {
-            switch (schoolType)
+            return circleType == RhythmTargetSystem.CircleType.White ? 
+                new Color(0.8f, 0.9f, 1f, 0.9f) : new Color(0.5f, 0.6f, 0.8f, 0.9f);
+        }
+        
+        private Color GetFishColor(FishTargetBehavior.FishSize fishSize)
+        {
+            switch (fishSize)
             {
-                case FishSchool.SchoolType.Small:
+                case FishTargetBehavior.FishSize.Small:
                     return new Color(0.2f, 0.8f, 1f, 0.8f); // Bright blue
-                case FishSchool.SchoolType.Medium:
+                case FishTargetBehavior.FishSize.Medium:
                     return new Color(1f, 0.6f, 0.2f, 0.8f); // Orange
-                case FishSchool.SchoolType.Large:
+                case FishTargetBehavior.FishSize.Large:
                     return new Color(0.8f, 0.2f, 0.2f, 0.9f); // Red
                 default:
-                    return Color.cyan;
+                    return new Color(0.5f, 0.5f, 0.8f, 0.8f);
             }
         }
         
@@ -546,7 +557,7 @@ namespace VRBoxingGame.Environment
                 if (bioluminescence != null)
                 {
                     // Get distance to player
-                    float distanceToPlayer = Vector3.Distance(fish.transform.position, Camera.main.transform.position);
+                    float distanceToPlayer = Vector3.Distance(fish.transform.position, VRBoxingGame.Core.VRCameraHelper.PlayerPosition);
                     
                     // Adjust glow based on proximity
                     float glowIntensity = baseGlowIntensity;
@@ -887,7 +898,7 @@ namespace VRBoxingGame.Environment
         {
             spinSpeed = speed;
             sharkRigidbody = GetComponent<Rigidbody>();
-            targetPosition = Camera.main.transform.position;
+                            targetPosition = VRBoxingGame.Core.VRCameraHelper.PlayerPosition;
             
             // Start attack sequence
             isAttacking = true;

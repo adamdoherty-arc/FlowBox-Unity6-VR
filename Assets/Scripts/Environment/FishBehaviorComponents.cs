@@ -1,5 +1,7 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 using VRBoxingGame.Boxing;
+using VRBoxingGame.Performance;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -137,14 +139,14 @@ namespace VRBoxingGame.Environment
             else if (isAggressive)
             {
                 // Aggressive fish move toward player
-                Vector3 playerPosition = Camera.main.transform.position;
+                Vector3 playerPosition = VRBoxingGame.Core.VRCameraHelper.PlayerPosition;
                 Vector3 directionToPlayer = (playerPosition - transform.position).normalized;
                 movement = directionToPlayer * currentSpeed * aggressionMultiplier;
             }
             else if (isRetreating)
             {
                 // Retreating fish move away from player
-                Vector3 playerPosition = Camera.main.transform.position;
+                Vector3 playerPosition = VRBoxingGame.Core.VRCameraHelper.PlayerPosition;
                 Vector3 directionFromPlayer = (transform.position - playerPosition).normalized;
                 movement = directionFromPlayer * currentSpeed;
             }
@@ -524,25 +526,31 @@ namespace VRBoxingGame.Environment
         private void SetupBioluminescence()
         {
             // Create glow light
-            GameObject lightObj = new GameObject("BioluminescenceLight");
-            lightObj.transform.SetParent(transform);
-            lightObj.transform.localPosition = Vector3.zero;
+            GameObject lightGO = new GameObject("BiolumLight");
+            lightGO.transform.SetParent(transform);
+            lightGO.transform.localPosition = Vector3.zero;
             
-            glowLight = lightObj.AddComponent<Light>();
+            glowLight = lightGO.AddComponent<Light>();
             glowLight.type = LightType.Point;
-            glowLight.color = glowColor;
+            glowLight.range = 5f;
             glowLight.intensity = intensity;
-            glowLight.range = 3f;
+            glowLight.color = glowColor;
             
-            // Setup glowing material
+            // Create glowing material with pooling
             fishRenderer = GetComponent<Renderer>();
             if (fishRenderer != null)
             {
-                glowMaterial = new Material(fishRenderer.material);
+                glowMaterial = MaterialPool.Instance != null ? 
+                    MaterialPool.Instance.GetURPLitMaterial(glowColor) :
+                    new Material(fishRenderer.material);
+                glowMaterial.color = glowColor;
                 glowMaterial.EnableKeyword("_EMISSION");
                 glowMaterial.SetColor("_EmissionColor", glowColor * intensity);
+                
                 fishRenderer.material = glowMaterial;
             }
+            
+            baseIntensity = intensity;
         }
         
         private void Update()

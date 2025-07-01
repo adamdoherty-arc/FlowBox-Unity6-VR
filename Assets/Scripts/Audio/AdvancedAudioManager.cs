@@ -130,7 +130,8 @@ namespace VRBoxingGame.Audio
             audioListener = FindObjectOfType<AudioListener>();
             if (audioListener == null)
             {
-                audioListener = Camera.main.gameObject.AddComponent<AudioListener>();
+                var camera = VRBoxingGame.Core.VRCameraHelper.ActiveCamera;
+                audioListener = camera != null ? camera.gameObject.AddComponent<AudioListener>() : null;
             }
             
             // Create music audio source

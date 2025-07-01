@@ -270,7 +270,7 @@ namespace VRBoxingGame.Boxing
             if (!enableDirectionAnalysis) return 1f;
             
             // Analyze if punch is moving forward (away from body)
-            Vector3 forwardDirection = Camera.main.transform.forward;
+                            Vector3 forwardDirection = VRBoxingGame.Core.VRCameraHelper.PlayerForward;
             float forwardAlignment = Vector3.Dot(smoothedVelocity.normalized, forwardDirection);
             
             return Mathf.Clamp01(forwardAlignment);

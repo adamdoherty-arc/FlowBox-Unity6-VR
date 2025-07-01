@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Collections;
 using VRBoxingGame.Audio;
 using VRBoxingGame.Boxing;
+using VRBoxingGame.Performance;
 
 namespace VRBoxingGame.Environment
 {
@@ -124,21 +125,27 @@ namespace VRBoxingGame.Environment
         private void InitializeOptimizedMaterials()
         {
             // Create GPU instanced materials for better performance
-            var underwaterMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            var underwaterMaterial = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetURPLitMaterial(new Color(0.2f, 0.6f, 1f, 0.7f)) :
+                new Material(Shader.Find("Universal Render Pipeline/Lit"));
             underwaterMaterial.enableInstancing = true;
             underwaterMaterial.SetFloat("_Surface", 1); // Transparent
             underwaterMaterial.SetColor("_BaseColor", new Color(0.2f, 0.6f, 1f, 0.7f));
             optimizedMaterials["Underwater"] = underwaterMaterial;
             
-            var bioluminescenceMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            var bioluminescenceMaterial = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetURPLitMaterial(Color.cyan) :
+                new Material(Shader.Find("Universal Render Pipeline/Lit"));
             bioluminescenceMaterial.EnableKeyword("_EMISSION");
             bioluminescenceMaterial.SetColor("_EmissionColor", Color.cyan * 2f);
             bioluminescenceMaterial.enableInstancing = true;
             optimizedMaterials["Bioluminescence"] = bioluminescenceMaterial;
             
-            var coralMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            var coralMaterial = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetURPLitMaterial(new Color(1f, 0.3f, 0.2f)) :
+                new Material(Shader.Find("Universal Render Pipeline/Lit"));
             coralMaterial.enableInstancing = true;
-            coralMaterial.SetColor("_BaseColor", new Color(1f, 0.4f, 0.6f, 1f));
+            coralMaterial.SetColor("_BaseColor", new Color(1f, 0.3f, 0.2f));
             optimizedMaterials["Coral"] = coralMaterial;
         }
         
@@ -650,10 +657,7 @@ namespace VRBoxingGame.Environment
         
         private float3 GetPlayerPosition()
         {
-            if (Camera.main != null)
-            {
-                return Camera.main.transform.position;
-            }
+            return VRBoxingGame.Core.VRCameraHelper.PlayerPosition;
             return float3.zero;
         }
         

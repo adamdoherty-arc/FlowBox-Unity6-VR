@@ -795,7 +795,7 @@ namespace VRBoxingGame.UI
             var confirmationGO = new GameObject("TargetModeConfirmation");
             var canvas = confirmationGO.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
-            canvas.worldCamera = Camera.main;
+            canvas.worldCamera = VRBoxingGame.Core.VRCameraHelper.ActiveCamera;
             
             var text = confirmationGO.AddComponent<TextMeshProUGUI>();
             text.text = $"<color=#FFD700>Target Mode: {mode}</color>\n<color=#FFFFFF>{sceneSpecific}</color>";
@@ -803,8 +803,9 @@ namespace VRBoxingGame.UI
             text.alignment = TextAlignmentOptions.Center;
             
             // Position in front of player
-            confirmationGO.transform.position = Camera.main.transform.position + Camera.main.transform.forward * 3f;
-            confirmationGO.transform.LookAt(Camera.main.transform);
+            var cameraTransform = VRBoxingGame.Core.VRCameraHelper.ActiveCameraTransform;
+            confirmationGO.transform.position = cameraTransform.position + cameraTransform.forward * 3f;
+            confirmationGO.transform.LookAt(cameraTransform);
             confirmationGO.transform.Rotate(0, 180, 0);
             
             // Auto-destroy after 3 seconds

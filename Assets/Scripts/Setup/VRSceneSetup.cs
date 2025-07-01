@@ -66,9 +66,13 @@ namespace VRBoxingGame.Setup
             if (prefabCreator != null)
             {
                 // Load materials from Resources or create them
-                prefabCreator.whiteMaterial = Resources.Load<Material>("WhiteCircleMaterial");
-                prefabCreator.grayMaterial = Resources.Load<Material>("GrayCircleMaterial");
-                prefabCreator.blockMaterial = Resources.Load<Material>("RedBlockMaterial");
+                            // Direct asset references - assign in inspector
+            if (prefabCreator.whiteMaterial == null)
+                Debug.LogWarning("VRSceneSetup: WhiteCircleMaterial not assigned in inspector");
+            if (prefabCreator.grayMaterial == null)
+                Debug.LogWarning("VRSceneSetup: GrayCircleMaterial not assigned in inspector");
+            if (prefabCreator.blockMaterial == null)
+                Debug.LogWarning("VRSceneSetup: RedBlockMaterial not assigned in inspector");
                 
                 // If not found in Resources, try to find in project
                 if (prefabCreator.whiteMaterial == null)

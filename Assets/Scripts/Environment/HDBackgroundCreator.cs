@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using VRBoxingGame.Environment;
+using VRBoxingGame.Performance;
 
 namespace VRBoxingGame.Environment
 {
@@ -194,13 +196,15 @@ namespace VRBoxingGame.Environment
         private void CreateCyberpunkSkybox(Transform parent)
         {
             // Create dark cyberpunk skybox with city glow
-            Material skyboxMat = new Material(Shader.Find("Skybox/Gradient"));
+            Material skyboxMat = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetSkyboxMaterial(new Color(0.1f, 0.05f, 0.2f), new Color(0.8f, 0.2f, 0.4f)) :
+                new Material(Shader.Find("Skybox/Gradient"));
             skyboxMat.SetColor("_Color1", new Color(0.1f, 0.05f, 0.2f)); // Dark purple
             skyboxMat.SetColor("_Color2", new Color(0.8f, 0.2f, 0.4f)); // Neon pink
             skyboxMat.SetFloat("_Exponent", 2f);
             
             RenderSettings.skybox = skyboxMat;
-            RenderSettings.ambientLight = new Color(0.2f, 0.1f, 0.3f);
+            RenderSettings.ambientLight = new Color(0.3f, 0.1f, 0.3f);
         }
         
         private void CreateRainEffect(Transform parent)
@@ -310,7 +314,9 @@ namespace VRBoxingGame.Environment
                 
                 planet.transform.localScale = Vector3.one * Random.Range(20f, 100f);
                 
-                Material planetMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                Material planetMat = MaterialPool.Instance != null ? 
+                    MaterialPool.Instance.GetURPLitMaterial(planetColors[i]) :
+                    new Material(Shader.Find("Universal Render Pipeline/Lit"));
                 planetMat.color = planetColors[i];
                 planetMat.SetFloat("_Metallic", 0.3f);
                 planetMat.SetFloat("_Smoothness", 0.8f);
@@ -344,8 +350,11 @@ namespace VRBoxingGame.Environment
         // Helper Methods
         private Material CreateNeonMaterial()
         {
-            Material mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            mat.color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+            Color neonColor = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+            Material mat = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetURPLitMaterial(neonColor) :
+                new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            mat.color = neonColor;
             mat.SetFloat("_Metallic", 0.8f);
             mat.SetFloat("_Smoothness", 0.9f);
             mat.EnableKeyword("_EMISSION");
@@ -355,8 +364,11 @@ namespace VRBoxingGame.Environment
         
         private Material CreateGlowingMaterial()
         {
-            Material mat = new Material(Shader.Find("Sprites/Default"));
-            mat.color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+            Color glowColor = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+            Material mat = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetMaterial(Shader.Find("Sprites/Default"), glowColor) :
+                new Material(Shader.Find("Sprites/Default"));
+            mat.color = glowColor;
             return mat;
         }
         
@@ -387,7 +399,9 @@ namespace VRBoxingGame.Environment
                 
                 station.transform.localScale = new Vector3(20f, 50f, 20f);
                 
-                Material stationMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                Material stationMat = MaterialPool.Instance != null ? 
+                    MaterialPool.Instance.GetURPLitMaterial(Color.gray) :
+                    new Material(Shader.Find("Universal Render Pipeline/Lit"));
                 stationMat.color = Color.gray;
                 stationMat.SetFloat("_Metallic", 0.9f);
                 station.GetComponent<Renderer>().material = stationMat;
@@ -413,7 +427,9 @@ namespace VRBoxingGame.Environment
                 
                 asteroid.transform.localScale = Vector3.one * Random.Range(2f, 15f);
                 
-                Material asteroidMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                Material asteroidMat = MaterialPool.Instance != null ? 
+                    MaterialPool.Instance.GetURPLitMaterial(new Color(0.3f, 0.2f, 0.1f)) :
+                    new Material(Shader.Find("Universal Render Pipeline/Lit"));
                 asteroidMat.color = new Color(0.3f, 0.2f, 0.1f);
                 asteroid.GetComponent<Renderer>().material = asteroidMat;
                 
@@ -471,7 +487,9 @@ namespace VRBoxingGame.Environment
         
         private void CreateAbstractSkybox(Transform parent) 
         { 
-            Material skyboxMat = new Material(Shader.Find("Skybox/Gradient"));
+            Material skyboxMat = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetSkyboxMaterial(new Color(0.2f, 0f, 0.8f), new Color(1f, 0.5f, 0f)) :
+                new Material(Shader.Find("Skybox/Gradient"));
             skyboxMat.SetColor("_Color1", new Color(0.2f, 0f, 0.8f)); // Deep purple
             skyboxMat.SetColor("_Color2", new Color(1f, 0.5f, 0f)); // Orange
             skyboxMat.SetFloat("_Exponent", 1.5f);
@@ -512,55 +530,59 @@ namespace VRBoxingGame.Environment
         
         private void CreateCrystalFormations(Transform parent)
         {
-            // Create large crystal formations around player in 360 degrees
-            for (int i = 0; i < 12; i++)
+            for (int i = 0; i < 20; i++)
             {
-                GameObject crystal = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                crystal.name = $"CrystalFormation_{i}";
+                GameObject crystal = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                crystal.name = $"Crystal_{i}";
                 crystal.transform.SetParent(parent);
                 
-                float angle = (i / 12f) * 360f;
-                float distance = Random.Range(40f, 80f);
-                float height = Random.Range(15f, 50f);
+                float distance = Random.Range(20f, 150f);
+                float angle = Random.Range(0f, 360f);
                 
                 crystal.transform.position = new Vector3(
                     Mathf.Sin(angle * Mathf.Deg2Rad) * distance,
-                    height / 2f,
+                    Random.Range(-10f, 30f),
                     Mathf.Cos(angle * Mathf.Deg2Rad) * distance
                 );
                 
                 crystal.transform.localScale = new Vector3(
-                    Random.Range(8f, 20f),
-                    height,
-                    Random.Range(8f, 20f)
+                    Random.Range(2f, 8f),
+                    Random.Range(10f, 25f),
+                    Random.Range(2f, 8f)
                 );
                 
-                // Crystal material with transparency and glow
-                Material crystalMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                crystalMat.color = new Color(0.8f, 0.9f, 1f, 0.7f);
-                crystalMat.SetFloat("_Metallic", 0.1f);
-                crystalMat.SetFloat("_Smoothness", 0.95f);
-                crystal.GetComponent<Renderer>().material = crystalMat;
+                crystal.transform.rotation = Quaternion.Euler(
+                    Random.Range(0f, 360f),
+                    Random.Range(0f, 360f),
+                    Random.Range(0f, 360f)
+                );
                 
-                // Add reactive component for 360-degree interaction
-                crystal.AddComponent<ReactiveEnvironmentObject>();
+                Color crystalColor = Color.HSVToRGB(Random.Range(0.5f, 0.8f), 0.8f, 1f);
+                Material crystalMat = MaterialPool.Instance != null ? 
+                    MaterialPool.Instance.GetURPLitMaterial(crystalColor) :
+                    new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                crystalMat.color = crystalColor;
+                crystalMat.SetFloat("_Metallic", 0.1f);
+                crystalMat.SetFloat("_Smoothness", 0.9f);
+                crystal.GetComponent<Renderer>().material = crystalMat;
             }
         }
         
         private void CreateReflectiveSurfaces(Transform parent)
         {
-            // Create reflective crystal walls
-            GameObject reflectiveFloor = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            reflectiveFloor.name = "ReflectiveFloor";
-            reflectiveFloor.transform.SetParent(parent);
-            reflectiveFloor.transform.localScale = Vector3.one * 50f;
-            reflectiveFloor.transform.position = new Vector3(0, -2f, 0);
+            GameObject reflectivePlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            reflectivePlane.name = "ReflectivePlane";
+            reflectivePlane.transform.SetParent(parent);
+            reflectivePlane.transform.localScale = Vector3.one * 50f;
+            reflectivePlane.transform.position = new Vector3(0, -5f, 0);
             
-            Material reflectiveMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            reflectiveMat.color = new Color(0.9f, 0.95f, 1f, 0.8f);
+            Material reflectiveMat = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetURPLitMaterial(new Color(0.9f, 0.9f, 1f)) :
+                new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            reflectiveMat.color = new Color(0.9f, 0.9f, 1f);
             reflectiveMat.SetFloat("_Metallic", 1f);
             reflectiveMat.SetFloat("_Smoothness", 1f);
-            reflectiveFloor.GetComponent<Renderer>().material = reflectiveMat;
+            reflectivePlane.GetComponent<Renderer>().material = reflectiveMat;
         }
         
         private void CreateCrystalLighting(Transform parent)
@@ -639,30 +661,40 @@ namespace VRBoxingGame.Environment
         
         private void CreateIcyTerrain(Transform parent)
         {
-            // Create icy ground with frozen textures
-            for (int i = 0; i < 16; i++)
+            GameObject icePlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            icePlane.name = "IcyTerrain";
+            icePlane.transform.SetParent(parent);
+            icePlane.transform.localScale = Vector3.one * 100f;
+            icePlane.transform.position = new Vector3(0, -2f, 0);
+            
+            Material iceMat = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetURPLitMaterial(new Color(0.9f, 0.95f, 1f)) :
+                new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            iceMat.color = new Color(0.9f, 0.95f, 1f);
+            iceMat.SetFloat("_Metallic", 0.2f);
+            iceMat.SetFloat("_Smoothness", 0.9f);
+            icePlane.GetComponent<Renderer>().material = iceMat;
+            
+            // Add some ice chunks
+            for (int i = 0; i < 30; i++)
             {
                 GameObject iceChunk = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 iceChunk.name = $"IceChunk_{i}";
                 iceChunk.transform.SetParent(parent);
                 
-                float angle = (i / 16f) * 360f;
                 iceChunk.transform.position = new Vector3(
-                    Mathf.Sin(angle * Mathf.Deg2Rad) * Random.Range(20f, 60f),
-                    Random.Range(-2f, 2f),
-                    Mathf.Cos(angle * Mathf.Deg2Rad) * Random.Range(20f, 60f)
+                    Random.Range(-100f, 100f),
+                    Random.Range(-1f, 5f),
+                    Random.Range(-100f, 100f)
                 );
                 
-                iceChunk.transform.localScale = new Vector3(
-                    Random.Range(8f, 15f),
-                    Random.Range(2f, 8f),
-                    Random.Range(8f, 15f)
+                iceChunk.transform.localScale = Vector3.one * Random.Range(2f, 8f);
+                iceChunk.transform.rotation = Quaternion.Euler(
+                    Random.Range(0f, 360f),
+                    Random.Range(0f, 360f),
+                    Random.Range(0f, 360f)
                 );
                 
-                Material iceMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                iceMat.color = new Color(0.9f, 0.95f, 1f, 0.8f);
-                iceMat.SetFloat("_Metallic", 0.2f);
-                iceMat.SetFloat("_Smoothness", 0.9f);
                 iceChunk.GetComponent<Renderer>().material = iceMat;
             }
         }
@@ -717,31 +749,31 @@ namespace VRBoxingGame.Environment
         
         private void CreateCoralReefs(Transform parent)
         {
-            // Create colorful coral formations in 360 degrees
-            Color[] coralColors = { Color.red, Color.yellow, Color.magenta, Color.cyan };
-            
-            for (int i = 0; i < 24; i++)
+            for (int i = 0; i < 25; i++)
             {
                 GameObject coral = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 coral.name = $"Coral_{i}";
                 coral.transform.SetParent(parent);
                 
-                float angle = (i / 24f) * 360f;
+                float distance = Random.Range(15f, 100f);
+                float angle = Random.Range(0f, 360f);
+                
                 coral.transform.position = new Vector3(
-                    Mathf.Sin(angle * Mathf.Deg2Rad) * Random.Range(15f, 40f),
-                    Random.Range(-3f, 8f),
-                    Mathf.Cos(angle * Mathf.Deg2Rad) * Random.Range(15f, 40f)
+                    Mathf.Sin(angle * Mathf.Deg2Rad) * distance,
+                    Random.Range(-10f, 5f),
+                    Mathf.Cos(angle * Mathf.Deg2Rad) * distance
                 );
                 
-                coral.transform.localScale = Vector3.one * Random.Range(3f, 8f);
+                coral.transform.localScale = Vector3.one * Random.Range(3f, 12f);
                 
-                Material coralMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                coralMat.color = coralColors[Random.Range(0, coralColors.Length)];
+                Color coralColor = Color.HSVToRGB(Random.Range(0f, 0.15f), 0.8f, 1f);
+                Material coralMat = MaterialPool.Instance != null ? 
+                    MaterialPool.Instance.GetURPLitMaterial(coralColor) :
+                    new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                coralMat.color = coralColor;
                 coralMat.SetFloat("_Metallic", 0f);
                 coralMat.SetFloat("_Smoothness", 0.3f);
                 coral.GetComponent<Renderer>().material = coralMat;
-                
-                coral.AddComponent<ReactiveEnvironmentObject>();
             }
         }
         
@@ -785,28 +817,35 @@ namespace VRBoxingGame.Environment
         
         private void CreateSeaLife(Transform parent)
         {
-            // Create animated sea creatures swimming around
             for (int i = 0; i < 15; i++)
             {
                 GameObject fish = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                fish.name = $"SeaCreature_{i}";
+                fish.name = $"Fish_{i}";
                 fish.transform.SetParent(parent);
                 
+                float distance = Random.Range(10f, 50f);
                 float angle = Random.Range(0f, 360f);
+                
                 fish.transform.position = new Vector3(
-                    Mathf.Sin(angle * Mathf.Deg2Rad) * Random.Range(20f, 50f),
-                    Random.Range(-5f, 10f),
-                    Mathf.Cos(angle * Mathf.Deg2Rad) * Random.Range(20f, 50f)
+                    Mathf.Sin(angle * Mathf.Deg2Rad) * distance,
+                    Random.Range(-5f, 15f),
+                    Mathf.Cos(angle * Mathf.Deg2Rad) * distance
                 );
                 
-                fish.transform.localScale = Vector3.one * Random.Range(1f, 3f);
+                fish.transform.localScale = new Vector3(0.5f, 0.3f, 2f);
+                fish.transform.rotation = Quaternion.LookRotation(Random.insideUnitSphere);
                 
-                Material fishMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                fishMat.color = new Color(Random.value, Random.value, Random.value);
+                Color fishColor = Color.HSVToRGB(Random.Range(0.15f, 0.65f), 0.8f, 1f);
+                Material fishMat = MaterialPool.Instance != null ? 
+                    MaterialPool.Instance.GetURPLitMaterial(fishColor) :
+                    new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                fishMat.color = fishColor;
+                fishMat.SetFloat("_Metallic", 0.1f);
+                fishMat.SetFloat("_Smoothness", 0.7f);
                 fish.GetComponent<Renderer>().material = fishMat;
                 
-                // Add simple movement animation
-                fish.AddComponent<PlanetRotation>();
+                // Add simple swimming behavior
+                fish.AddComponent<SimpleSwimming>();
             }
         }
         

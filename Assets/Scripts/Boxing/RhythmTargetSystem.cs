@@ -9,6 +9,8 @@ using VRBoxingGame.Core;
 using VRBoxingGame.Audio;
 using VRBoxingGame.Environment;
 using System.Threading.Tasks;
+using VRBoxingGame.Performance;
+using UnityEngine.XR;
 
 namespace VRBoxingGame.Boxing
 {
@@ -739,7 +741,9 @@ namespace VRBoxingGame.Boxing
         
         private Material CreateInstancedMaterial(Color baseColor)
         {
-            Material material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            Material material = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetURPLitMaterial(baseColor) :
+                new Material(Shader.Find("Universal Render Pipeline/Lit"));
             material.enableInstancing = true;
             material.SetColor("_BaseColor", baseColor);
             material.SetFloat("_Metallic", 0.1f);

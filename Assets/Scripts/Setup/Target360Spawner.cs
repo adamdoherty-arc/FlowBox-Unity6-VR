@@ -1,5 +1,6 @@
 using UnityEngine;
 using VRBoxingGame.Boxing;
+using VRBoxingGame.Performance;
 
 namespace VRBoxingGame.Setup
 {
@@ -62,7 +63,9 @@ namespace VRBoxingGame.Setup
             indicatorObj.transform.localPosition = Vector3.zero;
             
             spawnIndicator = indicatorObj.AddComponent<LineRenderer>();
-            spawnIndicator.material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            spawnIndicator.material = MaterialPool.Instance != null ? 
+                MaterialPool.Instance.GetURPLitMaterial(neutralColor) :
+                new Material(Shader.Find("Universal Render Pipeline/Lit"));
             spawnIndicator.startWidth = 0.02f;
             spawnIndicator.endWidth = 0.02f;
             spawnIndicator.positionCount = 2;
