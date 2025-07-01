@@ -100,42 +100,53 @@ namespace VRBoxingGame.Setup
         
         private void SetupVRRig()
         {
-            Debug.Log("🥽 Setting up VR Rig...");
+            Debug.Log("🥽 Setting up VR Rig with 360-degree movement...");
             
-            // Find or create XR Origin
+            // Setup 360-degree movement system first
+            VR360MovementSystem movementSystem = FindObjectOfType<VR360MovementSystem>();
+            if (movementSystem == null)
+            {
+                GameObject movementObj = new GameObject("VR 360 Movement System");
+                movementSystem = movementObj.AddComponent<VR360MovementSystem>();
+                
+                // Configure for Supernatural-style movement
+                movementSystem.enableRoomScaleTracking = true;
+                movementSystem.enableContinuousTurning = true;
+                movementSystem.trackingOriginMode = TrackingOriginMode.Floor;
+                movementSystem.continuousTurningSpeed = 90f; // Fast turning for boxing
+                movementSystem.snapTurnAngle = 45f; // Quick snap turns
+                
+                Debug.Log("✅ VR 360-degree movement system created");
+            }
+            
+            // Find or create XR Origin (movement system will handle this)
             XROrigin xrOrigin = FindObjectOfType<XROrigin>();
             if (xrOrigin == null)
             {
-                // Create XR Origin
-                GameObject xrOriginObj = new GameObject("XR Origin");
-                xrOrigin = xrOriginObj.AddComponent<XROrigin>();
+                // Let the movement system create the proper XR Origin
+                Debug.Log("XR Origin will be created by movement system");
                 
-                // Setup camera offset
-                GameObject cameraOffset = new GameObject("Camera Offset");
-                cameraOffset.transform.SetParent(xrOriginObj.transform);
-                xrOrigin.CameraFloorOffsetObject = cameraOffset;
-                
-                // Setup main camera
-                GameObject mainCameraObj = new GameObject("Main Camera");
-                mainCameraObj.transform.SetParent(cameraOffset.transform);
-                mainCameraObj.transform.localPosition = vrCameraPosition;
-                
-                Camera mainCamera = mainCameraObj.AddComponent<Camera>();
-                mainCamera.tag = "MainCamera";
-                
-                // Add audio listener
-                mainCameraObj.AddComponent<AudioListener>();
-                
-                // Add XR camera components
-                mainCameraObj.AddComponent<TrackedPoseDriver>();
-                
-                xrOrigin.Camera = mainCamera;
+                // Wait a frame for the movement system to initialize
+                StartCoroutine(DelayedHandControllerSetup());
+                return;
             }
             
             // Create hand controllers
             CreateHandControllers(xrOrigin);
             
-            Debug.Log("✅ VR Rig setup complete");
+            Debug.Log("✅ VR Rig with 360-degree movement setup complete");
+        }
+        
+        private System.Collections.IEnumerator DelayedHandControllerSetup()
+        {
+            yield return null; // Wait one frame
+            
+            XROrigin xrOrigin = FindObjectOfType<XROrigin>();
+            if (xrOrigin != null)
+            {
+                CreateHandControllers(xrOrigin);
+                Debug.Log("✅ Hand controllers created after movement system setup");
+            }
         }
         
         private void CreateHandControllers(XROrigin xrOrigin)

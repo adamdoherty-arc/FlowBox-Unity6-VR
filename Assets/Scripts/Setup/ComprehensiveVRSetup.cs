@@ -24,6 +24,7 @@ namespace VRBoxingGame.Setup
         [Header("XR Configuration")]
         public bool createXROrigin = true;
         public bool setupHandTracking = true;
+        public bool enable360Movement = true;
         
         [Header("Audio Setup")]
         public bool createAudioManager = true;
@@ -87,6 +88,12 @@ namespace VRBoxingGame.Setup
             {
                 SetupPerformanceMonitoring();
                 CompleteStep("Performance Monitoring Setup");
+            }
+            
+            if (enable360Movement)
+            {
+                Setup360Movement();
+                CompleteStep("360-Degree Movement Setup");
             }
             
             if (createTestEnvironment)
@@ -283,6 +290,23 @@ namespace VRBoxingGame.Setup
             }
             
             Log("Test environment configured");
+        }
+        
+        private void Setup360Movement()
+        {
+            VR360MovementSystem movementSystem = FindObjectOfType<VR360MovementSystem>();
+            if (movementSystem == null)
+            {
+                GameObject movementObj = new GameObject("VR 360 Movement System");
+                movementSystem = movementObj.AddComponent<VR360MovementSystem>();
+                
+                // Configure for comprehensive VR setup
+                movementSystem.enableRoomScaleTracking = true;
+                movementSystem.enableContinuousTurning = true;
+                movementSystem.trackingOriginMode = TrackingOriginMode.Floor;
+            }
+            
+            Log("360-degree movement system configured");
         }
         
         private void Step12_FinalValidation()
