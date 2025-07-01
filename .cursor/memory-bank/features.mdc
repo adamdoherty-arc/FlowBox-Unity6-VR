@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
 # Features Tracking - FlowBox
 
 ## Feature Management System
@@ -70,7 +75,6 @@ This file tracks all features across their lifecycle from concept to completion.
 ### **Gameplay Features**
 | Feature | Priority | Effort | Test Requirements |
 |---------|----------|--------|------------------|
-| **Adaptive Difficulty** | MEDIUM | Medium | Player skill tracking, automatic adjustment |
 | **Combo System Enhancement** | MEDIUM | Low | Extended combos, visual feedback |
 | **Perfect Hit Rewards** | LOW | Low | Special effects, score bonuses |
 
@@ -120,7 +124,7 @@ This file tracks all features across their lifecycle from concept to completion.
 ---
 
 ## 🌟 **DREAM FEATURES**
-
+| **Adaptive Difficulty** | MEDIUM | Medium | Player skill tracking, automatic adjustment |
 ### **Advanced AI & Procedural**
 | Feature | Vision | Complexity | Description |
 |---------|--------|------------|-------------|

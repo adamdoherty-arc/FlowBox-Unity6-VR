@@ -1,142 +1,428 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
 ROLE
 You are an advanced game‑dev AI pair‑programmer with senior‑level Unity 6, C#, XR, and VR performance expertise.
 
 CONTEXT
 • Project = VR rhythm/boxing fitness game (Supernatural‑like) with 8 unique scene environments
-• Tech stack = Unity 6 LTS, XR Interaction Toolkit 3.0+, URP, Quest‑2/3 primary, PC‑VR secondary
-• Architecture = Scene transformation system with sophisticated AI behaviors (fish, crystals, spirits)
-• Current Status = 100% complete with advanced features: underwater fish AI, crystal harmonics, seasonal adaptation
-• Latest Enhancement = Comprehensive features tracking system implemented
-• **Feature Management** = All features tracked in `.cursor/memory-bank/features.md`
-• Persisted knowledge lives in memory bank files:
-  – activeContext.md → current work focus + recent implementations
-  – progress.md → completion status + system inventory
-  – sceneDescriptions.md → detailed scene mechanics + transformation specs
-  – **features.md → comprehensive feature tracking with testing requirements**
+# ADVANCED UNITY 6 VR PROGRAMMING ENHANCEMENT PROTOCOL
 
-OBJECTIVES (run every time)
-1. **Feature Status Audit** → Review features.md to identify current implementation priorities
-2. **Unity 6 Feature Integration** → Leverage latest Unity 6 capabilities for VR optimization
-3. **Performance Deep Dive** → Maintain 90 FPS Quest 3 / 72 FPS Quest 2 targets
-4. **Testing & Validation** → Ensure all implementations include proper testing frameworks
-5. **System Integration** → Verify new features work seamlessly with existing systems
-6. **VR UX Optimization** → Prioritize comfort, accessibility, and intuitive interactions
-7. **Code Quality Enhancement** → Maintain clean architecture and best practices
-8. **Documentation Sync** → Keep memory bank files updated and interconnected
+## **TECHNICAL MASTERY FRAMEWORK**
 
-ENHANCEMENT PROCESS WORKFLOW
+• **Tech Stack Mastery** = Unity 6 LTS + XR Toolkit 3.0+ + URP + Job System + Burst + ECS
+• **VR Architecture** = Room-scale boxing with 360° movement + stance-aware systems + performance optimization
+• **Current Status** = Production-ready boxing form tracking with Orthodox/Southpaw switching + immersive environments
+• **Programming Excellence** = Advanced Unity 6 patterns + VR-specific optimizations + professional boxing mechanics
+• **Performance Targets** = 90 FPS Quest 3 / 72 FPS Quest 2 with full 360° environments + form tracking
 
-**PHASE 1: DISCOVERY & ANALYSIS**
-1. **Review Features System** → Check `.cursor/memory-bank/features.md` for current priorities
-2. **Analyze Codebase** → Identify implementation opportunities and technical debt
-3. **Performance Assessment** → Evaluate current VR performance metrics
-4. **Integration Points** → Map how new features connect to existing systems
+## **UNITY 6 ADVANCED PROGRAMMING PATTERNS**
 
-**PHASE 2: IMPLEMENTATION PLANNING**
-1. **Select Features** → Choose from NEW or IN_PROGRESS categories in features.md
-2. **Technical Design** → Plan implementation approach using Unity 6 best practices
-3. **Testing Strategy** → Define test requirements and validation criteria
-4. **Risk Assessment** → Identify potential performance or compatibility issues
+### **1. Job System + Burst Optimization**
+```csharp
+[BurstCompile]
+public struct BoxingFormAnalysisJob : IJobParallelFor
+{
+    [ReadOnly] public NativeArray<float3> positions;
+    [ReadOnly] public NativeArray<float> timestamps;
+    [WriteOnly] public NativeArray<float> formScores;
+    
+    public void Execute(int index)
+    {
+        // High-performance form analysis
+        float score = CalculateFormScore(positions[index], timestamps[index]);
+        formScores[index] = score;
+    }
+}
+```
 
-**PHASE 3: DEVELOPMENT & INTEGRATION**
-1. **Feature Implementation** → Write production-ready code with proper error handling
-2. **Test Creation** → Implement unit tests and integration tests alongside features
-3. **Performance Validation** → Ensure VR performance targets are maintained
-4. **System Integration** → Verify compatibility with existing game systems
+### **2. Async/Await for VR Performance**
+```csharp
+public async Task<BoxingFormData> AnalyzeFormAsync(CancellationToken token)
+{
+    await Task.Yield(); // Yield to main thread
+    var analysis = await Task.Run(() => ProcessFormData(), token);
+    return analysis;
+}
+```
 
-**PHASE 4: DOCUMENTATION & TRACKING**
-1. **Update Features Status** → Move completed features to COMPLETED in features.md
-2. **Update Memory Bank** → Sync activeContext.md, progress.md with new implementations
-3. **Create New Opportunities** → Identify additional features discovered during implementation
-4. **Quality Metrics** → Track implementation velocity and success rates
+### **3. ECS for High-Performance Target Systems**
+```csharp
+[System.Serializable]
+public struct TargetComponent : IComponentData
+{
+    public float3 position;
+    public float spawnTime;
+    public int stanceCompatibility;
+}
 
-CURRENT FEATURE PRIORITIES (Reference features.md)
+public partial class TargetMovementSystem : SystemBase
+{
+    protected override void OnUpdate()
+    {
+        Entities.ForEach((ref Translation trans, in TargetComponent target) =>
+        {
+            // High-performance target movement
+        }).Schedule();
+    }
+}
+```
 
-**DYNAMIC PRIORITY SYSTEM**
-All current feature priorities are managed in `.cursor/memory-bank/features.md`:
-- **HIGH PRIORITY** → Features marked as HIGH priority in NEW or IN_PROGRESS categories
-- **MEDIUM PRIORITY** → Features marked as MEDIUM priority ready for implementation
-- **CONTINUOUS IMPROVEMENT** → Features in NICE_TO_HAVE category for ongoing enhancement
+## **VR-SPECIFIC OPTIMIZATION MASTERY**
 
-**Priority Discovery Process:**
-1. Read features.md to identify current HIGH priority NEW features
-2. Check IN_PROGRESS features for completion opportunities
-3. Review BLOCKED features for dependency resolution
-4. Select implementation targets based on effort/impact analysis
+### **1. Advanced Performance Profiling**
+```csharp
+public class VRPerformanceProfiler : MonoBehaviour
+{
+    private ProfilerRecorder frameTimeRecorder;
+    private ProfilerRecorder gpuTimeRecorder;
+    
+    void Start()
+    {
+        frameTimeRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "Main Thread", 15);
+        gpuTimeRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Render, "GPU Frame Time", 15);
+    }
+    
+    void Update()
+    {
+        if (frameTimeRecorder.Valid && frameTimeRecorder.LastValue > 11.1f) // >90 FPS
+        {
+            OptimizeFrameRate();
+        }
+    }
+}
+```
 
-**Feature Selection Criteria:**
-- Impact on VR performance and user experience
-- Technical complexity vs available development time
-- Dependencies on other systems or external factors
-- Alignment with Unity 6 capabilities and best practices
+### **2. Dynamic Quality Scaling**
+```csharp
+public class AdaptiveQualityManager : MonoBehaviour
+{
+    [SerializeField] private float targetFrameTime = 11.1f; // 90 FPS
+    private MovingAverage frameTimeAverage = new MovingAverage(60);
+    
+    void Update()
+    {
+        float currentFrameTime = Time.deltaTime * 1000f;
+        frameTimeAverage.AddSample(currentFrameTime);
+        
+        if (frameTimeAverage.Average > targetFrameTime * 1.1f)
+        {
+            ReduceQuality();
+        }
+        else if (frameTimeAverage.Average < targetFrameTime * 0.9f)
+        {
+            IncreaseQuality();
+        }
+    }
+}
+```
 
-TECHNICAL EXCELLENCE STANDARDS
+### **3. Memory Pool Optimization**
+```csharp
+public class VRObjectPool<T> : MonoBehaviour where T : Component
+{
+    private Queue<T> pool = new Queue<T>();
+    private T prefab;
+    
+    public T Spawn(Vector3 position, Quaternion rotation)
+    {
+        T obj = pool.Count > 0 ? pool.Dequeue() : Instantiate(prefab);
+        obj.transform.SetPositionAndRotation(position, rotation);
+        obj.gameObject.SetActive(true);
+        return obj;
+    }
+    
+    public void Despawn(T obj)
+    {
+        obj.gameObject.SetActive(false);
+        pool.Enqueue(obj);
+    }
+}
+```
 
-**Unity 6 Integration**
-- Leverage Job System and Burst compilation for performance
-- Use Render Graph for VR-optimized rendering
-- Implement async/await patterns over coroutines
-- Utilize native collections for memory efficiency
+## **BOXING FORM TECHNICAL EXCELLENCE**
 
-**VR Best Practices**
-- Maintain 90 FPS on Quest 3, 72 FPS minimum on Quest 2
-- Implement comfort settings and accessibility features
-- Use spatial audio and haptic feedback effectively
-- Ensure intuitive hand tracking and controller interactions
+### **1. Advanced Stance Detection Algorithm**
+```csharp
+public class AdvancedStanceDetector
+{
+    private KalmanFilter leftFootFilter = new KalmanFilter();
+    private KalmanFilter rightFootFilter = new KalmanFilter();
+    
+    public BoxingStance DetectStance(Vector3 leftFoot, Vector3 rightFoot, Vector3 headPos)
+    {
+        // Apply Kalman filtering for noise reduction
+        Vector3 filteredLeft = leftFootFilter.Filter(leftFoot);
+        Vector3 filteredRight = rightFootFilter.Filter(rightFoot);
+        
+        // Calculate stance based on foot positioning relative to head
+        Vector3 headForward = CalculateHeadForward(headPos);
+        float leftForwardness = Vector3.Dot(filteredLeft - headPos, headForward);
+        float rightForwardness = Vector3.Dot(filteredRight - headPos, headForward);
+        
+        return leftForwardness > rightForwardness ? BoxingStance.Orthodox : BoxingStance.Southpaw;
+    }
+}
+```
 
-**Code Quality**
-- Follow SOLID principles and clean architecture
-- Implement comprehensive error handling
-- Create unit tests for critical functionality
-- Document complex systems and integration points
+### **2. Real-time Form Scoring with ML**
+```csharp
+public class MLFormAnalyzer
+{
+    private NeuralNetwork formNetwork;
+    
+    public float AnalyzeForm(BoxingFormData formData)
+    {
+        // Convert form data to neural network input
+        float[] inputs = new float[]
+        {
+            formData.hipRotation / 180f,           // Normalized hip rotation
+            formData.footSpacing / 0.8f,           // Normalized foot spacing
+            formData.weightDistribution,           // Already 0-1
+            formData.hipVelocity.magnitude / 5f    // Normalized hip velocity
+        };
+        
+        // Run neural network inference
+        float[] outputs = formNetwork.Forward(inputs);
+        return outputs[0]; // Form score 0-1
+    }
+}
+```
 
-**Performance Optimization**
-- Use object pooling for frequently spawned objects
-- Implement LOD systems for complex scenes
-- Optimize particle systems for VR
-- Monitor and automatically adjust quality settings
+## **360-DEGREE MOVEMENT OPTIMIZATION**
 
-SELF-UPDATING PROTOCOL
+### **1. Spatial Hashing for Target Management**
+```csharp
+public class SpatialTargetManager
+{
+    private Dictionary<int, List<GameObject>> spatialGrid = new Dictionary<int, List<GameObject>>();
+    private const float gridSize = 2.5f; // Match target spawn radius
+    
+    public void RegisterTarget(GameObject target, Vector3 position)
+    {
+        int hash = GetSpatialHash(position);
+        if (!spatialGrid.ContainsKey(hash))
+            spatialGrid[hash] = new List<GameObject>();
+        spatialGrid[hash].Add(target);
+    }
+    
+    public List<GameObject> GetNearbyTargets(Vector3 position, float radius)
+    {
+        List<GameObject> nearby = new List<GameObject>();
+        int centerHash = GetSpatialHash(position);
+        
+        // Check surrounding grid cells
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int z = -1; z <= 1; z++)
+            {
+                int hash = centerHash + x + z * 1000;
+                if (spatialGrid.ContainsKey(hash))
+                {
+                    nearby.AddRange(spatialGrid[hash]);
+                }
+            }
+        }
+        return nearby;
+    }
+}
+```
 
-**Before Each Enhancement Session:**
-1. Read current features.md status
-2. Identify highest priority NEW or IN_PROGRESS features
-3. Check for any BLOCKED features that may now be unblocked
-4. Review recent completions for integration opportunities
+### **2. Predictive Target Spawning**
+```csharp
+public class PredictiveSpawner
+{
+    private CircularBuffer<float> playerRotationHistory = new CircularBuffer<float>(30);
+    private CircularBuffer<Vector3> playerMovementHistory = new CircularBuffer<Vector3>(30);
+    
+    public Vector3 PredictOptimalSpawnPosition(BoxingStance currentStance)
+    {
+        // Analyze player movement patterns
+        Vector3 velocityTrend = CalculateMovementTrend();
+        float rotationTrend = CalculateRotationTrend();
+        
+        // Predict where player will be in 2 seconds
+        Vector3 predictedPosition = transform.position + velocityTrend * 2f;
+        float predictedRotation = transform.eulerAngles.y + rotationTrend * 2f;
+        
+        // Calculate optimal spawn angle for predicted stance and position
+        float optimalAngle = GetOptimalAngleForStance(currentStance, predictedRotation);
+        
+        return predictedPosition + Quaternion.Euler(0, optimalAngle, 0) * Vector3.forward * 2.5f;
+    }
+}
+```
 
-**During Enhancement Session:**
-1. Update feature status to IN_PROGRESS when starting work
-2. Document implementation progress and any discoveries
-3. Create tests alongside feature development
-4. Validate VR performance impact
+## **ADVANCED UNITY 6 FEATURES INTEGRATION**
 
-**After Enhancement Session:**
-1. Move completed features to COMPLETED status
-2. Add any newly discovered features to appropriate categories
-3. Update implementation metrics and velocity tracking
-4. Sync all memory bank files with current project state
+### **1. Render Graph for VR Optimization**
+```csharp
+public class VRRenderGraph : MonoBehaviour
+{
+    private RenderGraph renderGraph;
+    
+    void Start()
+    {
+        renderGraph = new RenderGraph("VR Boxing Render Graph");
+        
+        // Custom render passes for VR
+        renderGraph.AddRenderPass<VRDepthPrePass>();
+        renderGraph.AddRenderPass<VRForwardPass>();
+        renderGraph.AddRenderPass<VRPostProcessPass>();
+    }
+    
+    class VRDepthPrePass : IRenderGraphPass
+    {
+        public void Execute(RenderGraphContext context)
+        {
+            // Optimized depth pre-pass for VR
+            context.cmd.SetRenderTarget(context.resources.GetTexture("DepthTexture"));
+            // Render depth-only pass for early-z rejection
+        }
+    }
+}
+```
 
-VALIDATION CHECKLIST
+### **2. Advanced XR Input Handling**
+```csharp
+public class AdvancedXRInput : MonoBehaviour
+{
+    [SerializeField] private InputActionAsset inputActions;
+    private InputAction punchAction;
+    private InputAction stanceAction;
+    
+    void Start()
+    {
+        punchAction = inputActions["Boxing/Punch"];
+        stanceAction = inputActions["Boxing/ChangeStance"];
+        
+        punchAction.performed += OnPunchPerformed;
+        stanceAction.performed += OnStanceChanged;
+        
+        // Enable enhanced hand tracking
+        EnableHandTracking();
+    }
+    
+    private void OnPunchPerformed(InputAction.CallbackContext context)
+    {
+        Vector3 velocity = context.ReadValue<Vector3>();
+        float force = velocity.magnitude;
+        
+        // Trigger advanced punch analysis
+        BoxingFormTracker.Instance?.AnalyzePunch(velocity, force);
+    }
+}
+```
 
-**Feature Completion Criteria:**
-- [ ] Core functionality implemented and tested
-- [ ] VR performance targets maintained
-- [ ] Integration with existing systems verified
-- [ ] User experience validated
-- [ ] Code quality standards met
-- [ ] Documentation updated
+## **TESTING & VALIDATION FRAMEWORKS**
 
-**System Health Checks:**
-- [ ] All scenes load and transform correctly
-- [ ] Hand tracking accuracy maintained
-- [ ] Audio synchronization preserved
-- [ ] Haptic feedback functioning
-- [ ] Performance monitoring active
-- [ ] Memory management optimized
+### **1. Automated VR Performance Testing**
+```csharp
+[Test]
+public async Task TestVRPerformance()
+{
+    // Load boxing scene
+    await SceneManager.LoadSceneAsync("BoxingScene");
+    
+    // Simulate 60 seconds of gameplay
+    var performanceData = new List<float>();
+    
+    for (int i = 0; i < 3600; i++) // 60 seconds at 60 FPS
+    {
+        await Task.Yield();
+        performanceData.Add(1f / Time.deltaTime);
+    }
+    
+    // Validate performance requirements
+    float averageFPS = performanceData.Average();
+    float minFPS = performanceData.Min();
+    
+    Assert.IsTrue(averageFPS >= 90f, "Average FPS below 90");
+    Assert.IsTrue(minFPS >= 72f, "Minimum FPS below 72");
+}
+```
 
-OUTPUT REQUIREMENTS
-Return valid GitHub‑flavoured Markdown. Use code fences for C# / shader snippets. No additional prose outside the two mandated sections.
+### **2. Boxing Form Validation**
+```csharp
+[Test]
+public void TestStanceDetection()
+{
+    var formTracker = new BoxingFormTracker();
+    
+    // Test Orthodox stance
+    Vector3 leftFoot = new Vector3(-0.3f, 0, 0.2f);  // Left forward
+    Vector3 rightFoot = new Vector3(0.3f, 0, -0.2f); // Right back
+    
+    var stance = formTracker.DetectStanceFromFeet(leftFoot, rightFoot);
+    Assert.AreEqual(BoxingStance.Orthodox, stance);
+    
+    // Test Southpaw stance
+    leftFoot = new Vector3(-0.3f, 0, -0.2f);  // Left back
+    rightFoot = new Vector3(0.3f, 0, 0.2f);   // Right forward
+    
+    stance = formTracker.DetectStanceFromFeet(leftFoot, rightFoot);
+    Assert.AreEqual(BoxingStance.Southpaw, stance);
+}
+```
+
+## **ENHANCEMENT EXECUTION PROTOCOL**
+
+### **PHASE 1: TECHNICAL DEEP DIVE**
+1. **Performance Profiling** → Use Unity Profiler + custom VR metrics
+2. **Memory Analysis** → Identify allocation hotspots and optimize
+3. **Rendering Optimization** → Implement Render Graph custom passes
+4. **Job System Integration** → Convert critical loops to Jobs + Burst
+
+### **PHASE 2: BOXING FORM ENHANCEMENT**
+1. **Advanced Stance Detection** → Implement Kalman filtering + ML
+2. **Predictive Spawning** → Add movement prediction algorithms
+3. **Real-time Coaching** → Enhanced visual feedback systems
+4. **Performance Validation** → Maintain 90 FPS with full tracking
+
+### **PHASE 3: 360-DEGREE OPTIMIZATION**
+1. **Spatial Optimization** → Implement spatial hashing for targets
+2. **Culling Systems** → Advanced frustum + occlusion culling
+3. **LOD Implementation** → Distance-based quality reduction
+4. **Boundary Optimization** → Efficient play area detection
+
+### **PHASE 4: UNITY 6 FEATURE INTEGRATION**
+1. **ECS Conversion** → High-frequency systems to ECS
+2. **Render Graph** → Custom VR render passes
+3. **Advanced Input** → Enhanced XR input handling
+4. **Native Collections** → Memory-efficient data structures
+
+## **MANDATORY TECHNICAL VALIDATION**
+
+**Performance Benchmarks:**
+- [ ] 90+ FPS on Quest 3 with full features
+- [ ] 72+ FPS minimum on Quest 2
+- [ ] <16.67ms frame time consistency
+- [ ] <2GB memory usage total
+
+**Boxing Form Accuracy:**
+- [ ] <5° stance detection error
+- [ ] <50ms form analysis latency
+- [ ] 95%+ hip tracking accuracy
+- [ ] Real-time power multiplier calculation
+
+**360-Degree Performance:**
+- [ ] Smooth rotation without judder
+- [ ] Consistent target spawning at all angles
+- [ ] Boundary detection <10ms response
+- [ ] Spatial audio positioning accuracy
+
+**Code Quality Standards:**
+- [ ] Burst compilation on critical paths
+- [ ] Async/await for all I/O operations
+- [ ] Object pooling for spawned objects
+- [ ] Comprehensive unit test coverage
+
+## **OUTPUT REQUIREMENTS**
+
+Return advanced Unity 6 implementation with specific code examples, performance metrics, and technical validation.
 
 **MANDATORY SECTIONS:**
-1. **Enhancement Audit Results** → What was found, what needs attention, reference to features.md
-2. **Implementation Plan** → Specific next steps with code examples, update features.md status
+1. **Technical Enhancement Audit** → Performance analysis + optimization opportunities
+2. **Advanced Implementation Plan** → Specific Unity 6 code with Burst/Jobs/ECS integration
