@@ -264,7 +264,8 @@ namespace VRBoxingGame.Core
             OnScoreChanged?.Invoke(currentScore);
             
             // Notify UI of combo change
-            if (VRBoxingGame.UI.GameUI gameUI = FindObjectOfType<VRBoxingGame.UI.GameUI>())
+            var gameUI = FindObjectOfType<VRBoxingGame.UI.GameUI>();
+            if (gameUI != null)
             {
                 gameUI.UpdateCombo(currentCombo, currentMultiplier);
             }
@@ -287,7 +288,8 @@ namespace VRBoxingGame.Core
             currentMultiplier = 1.0f;
             
             // Notify UI of combo break
-            if (VRBoxingGame.UI.GameUI gameUI = FindObjectOfType<VRBoxingGame.UI.GameUI>())
+            var gameUI = FindObjectOfType<VRBoxingGame.UI.GameUI>();
+            if (gameUI != null)
             {
                 gameUI.UpdateCombo(currentCombo, currentMultiplier);
             }
