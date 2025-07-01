@@ -155,7 +155,7 @@ namespace VRBoxingGame.Boxing
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"Error in hit effect: {ex.Message}");
+                AdvancedLoggingSystem.LogError(AdvancedLoggingSystem.LogCategory.Boxing, "BoxingTarget", $"Error in hit effect: {ex.Message}", ex);
                 
                 // Ensure object is destroyed even on error
                 if (gameObject != null)

@@ -123,7 +123,7 @@ namespace VRBoxingGame.Performance
         {
             if (!pools.ContainsKey(poolName))
             {
-                Debug.LogError($"Pool '{poolName}' does not exist!");
+                AdvancedLoggingSystem.LogError(AdvancedLoggingSystem.LogCategory.Performance, "ObjectPoolManager", $"Pool '{poolName}' does not exist!");
                 return null;
             }
             

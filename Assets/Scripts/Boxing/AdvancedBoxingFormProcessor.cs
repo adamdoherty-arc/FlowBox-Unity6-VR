@@ -29,6 +29,30 @@ namespace VRBoxingGame.Boxing
         public float stanceChangeThreshold = 0.7f;
         public int stanceHistorySize = 30;
         
+        // **ENHANCEMENT**: Add Kalman filtering for hip tracking
+        private KalmanFilter hipKalmanFilter;
+        private KalmanFilter leftFootKalmanFilter;  
+        private KalmanFilter rightFootKalmanFilter;
+        private CoachingFeedbackSystem coachingSystem;
+        
+        // **ENHANCEMENT**: Real-time coaching data
+        private struct CoachingFeedback
+        {
+            public string primaryAdvice;
+            public string secondaryAdvice;
+            public float confidenceLevel;
+            public CoachingType feedbackType;
+        }
+        
+        private enum CoachingType
+        {
+            StanceCorrection,
+            HipRotation,
+            FootPositioning,
+            WeightDistribution,
+            PowerGeneration
+        }
+        
         // Native Collections for high-performance data
         private NativeArray<float3> hipPositionHistory;
         private NativeArray<float3> leftFootHistory;
@@ -91,7 +115,13 @@ namespace VRBoxingGame.Boxing
             formScoreHistory = new NativeArray<float>(historySize, Allocator.Persistent);
             formAnalysisResults = new NativeArray<BoxingFormJobData>(batchSize, Allocator.Persistent);
             
-            Debug.Log($"🚀 Advanced Boxing Form Processor initialized with Job System (Burst: {enableBurstCompilation})");
+            // **ENHANCEMENT**: Initialize Kalman filters for noise reduction
+            hipKalmanFilter = new KalmanFilter();
+            leftFootKalmanFilter = new KalmanFilter();
+            rightFootKalmanFilter = new KalmanFilter();
+            coachingSystem = new CoachingFeedbackSystem();
+            
+            Debug.Log($"🚀 Advanced Boxing Form Processor initialized with Job System + Kalman Filtering (Burst: {enableBurstCompilation})");
         }
         
         private void Update()
@@ -170,7 +200,7 @@ namespace VRBoxingGame.Boxing
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"Error in form analysis: {ex.Message}");
+                AdvancedLoggingSystem.LogError(AdvancedLoggingSystem.LogCategory.Boxing, "AdvancedBoxingFormProcessor", $"Error in form analysis: {ex.Message}", ex);
             }
             finally
             {
@@ -180,24 +210,34 @@ namespace VRBoxingGame.Boxing
         
         private void UpdateTrackingData()
         {
-            var formTracker = BoxingFormTracker.Instance;
-            if (formTracker == null) return;
+            // Get current tracking references
+            Transform hipTransform = GetHipTransform();
+            Transform leftFootTransform = GetLeftFootTransform();
+            Transform rightFootTransform = GetRightFootTransform();
             
-            // Get current positions
-            float3 hipPos = formTracker.hipReference != null ? 
-                formTracker.hipReference.position : float3.zero;
-            float3 leftFootPos = formTracker.leftFootReference != null ? 
-                formTracker.leftFootReference.position : float3.zero;
-            float3 rightFootPos = formTracker.rightFootReference != null ? 
-                formTracker.rightFootReference.position : float3.zero;
-            
-            // Update history arrays
-            hipPositionHistory[historyIndex] = hipPos;
-            leftFootHistory[historyIndex] = leftFootPos;
-            rightFootHistory[historyIndex] = rightFootPos;
-            hipRotationHistory[historyIndex] = formTracker.CurrentHipRotation;
-            
-            historyIndex = (historyIndex + 1) % hipPositionHistory.Length;
+            if (hipTransform != null && leftFootTransform != null && rightFootTransform != null)
+            {
+                // **ENHANCEMENT**: Apply Kalman filtering for noise reduction
+                Vector3 rawHipPos = hipTransform.position;
+                Vector3 rawLeftFoot = leftFootTransform.position;
+                Vector3 rawRightFoot = rightFootTransform.position;
+                
+                Vector3 filteredHipPos = hipKalmanFilter.Filter(rawHipPos);
+                Vector3 filteredLeftFoot = leftFootKalmanFilter.Filter(rawLeftFoot);
+                Vector3 filteredRightFoot = rightFootKalmanFilter.Filter(rawRightFoot);
+                
+                // Store filtered data
+                int currentIndex = historyIndex % hipPositionHistory.Length;
+                hipPositionHistory[currentIndex] = filteredHipPos;
+                leftFootHistory[currentIndex] = filteredLeftFoot;
+                rightFootHistory[currentIndex] = filteredRightFoot;
+                hipRotationHistory[currentIndex] = hipTransform.eulerAngles.y;
+                
+                historyIndex++;
+                
+                // **ENHANCEMENT**: Generate real-time coaching feedback
+                GenerateCoachingFeedback(filteredHipPos, filteredLeftFoot, filteredRightFoot);
+            }
         }
         
         private void ProcessJobResults()
@@ -250,6 +290,44 @@ namespace VRBoxingGame.Boxing
             if (score >= 0.7f) return BoxingFormTracker.FormQuality.Good;
             if (score >= 0.5f) return BoxingFormTracker.FormQuality.Fair;
             return BoxingFormTracker.FormQuality.Poor;
+        }
+        
+        // **ENHANCEMENT**: Real-time coaching system
+        private void GenerateCoachingFeedback(Vector3 hipPos, Vector3 leftFoot, Vector3 rightFoot)
+        {
+            if (coachingSystem == null) return;
+            
+            var feedback = coachingSystem.AnalyzeForm(hipPos, leftFoot, rightFoot, cachedFormData);
+            
+            if (feedback.confidenceLevel > 0.8f)
+            {
+                Debug.Log($"🥊 COACHING: {feedback.primaryAdvice}");
+                
+                // Send feedback to UI system
+                if (BoxingFormTracker.Instance != null)
+                {
+                    // Could trigger UI coaching display here
+                }
+            }
+        }
+        
+        // **HELPER METHODS**: Get transform references
+        private Transform GetHipTransform()
+        {
+            var formTracker = BoxingFormTracker.Instance;
+            return formTracker?.hipReference;
+        }
+        
+        private Transform GetLeftFootTransform()
+        {
+            var formTracker = BoxingFormTracker.Instance;
+            return formTracker?.leftFootReference;
+        }
+        
+        private Transform GetRightFootTransform()
+        {
+            var formTracker = BoxingFormTracker.Instance;
+            return formTracker?.rightFootReference;
         }
         
         // Public API
@@ -501,6 +579,103 @@ namespace VRBoxingGame.Boxing
                     // Stance change detected with sufficient confidence
                 }
             }
+        }
+    }
+    
+    // **ADVANCED KALMAN FILTER FOR BOXING FORM TRACKING**
+    public class KalmanFilter
+    {
+        private Vector3 estimate = Vector3.zero;
+        private Vector3 errorCovariance = Vector3.one;
+        private readonly float processNoise = 0.005f; // Lower noise for boxing precision
+        private readonly float measurementNoise = 0.05f;
+        
+        public Vector3 Filter(Vector3 measurement)
+        {
+            // Prediction phase
+            Vector3 predictedEstimate = estimate;
+            Vector3 predictedErrorCovariance = errorCovariance + Vector3.one * processNoise;
+            
+            // Update phase  
+            Vector3 kalmanGain = new Vector3(
+                predictedErrorCovariance.x / (predictedErrorCovariance.x + measurementNoise),
+                predictedErrorCovariance.y / (predictedErrorCovariance.y + measurementNoise),
+                predictedErrorCovariance.z / (predictedErrorCovariance.z + measurementNoise)
+            );
+            
+            estimate = predictedEstimate + Vector3.Scale(kalmanGain, measurement - predictedEstimate);
+            errorCovariance = Vector3.Scale(Vector3.one - kalmanGain, predictedErrorCovariance);
+            
+            return estimate;
+        }
+        
+        public void Reset()
+        {
+            estimate = Vector3.zero;
+            errorCovariance = Vector3.one;
+        }
+    }
+    
+    // **REAL-TIME COACHING FEEDBACK SYSTEM**
+    public class CoachingFeedbackSystem
+    {
+        private const float OPTIMAL_STANCE_WIDTH = 0.6f;
+        private const float OPTIMAL_HIP_HEIGHT = 1.0f;
+        private const float STANCE_TOLERANCE = 0.1f;
+        
+        public AdvancedBoxingFormProcessor.CoachingFeedback AnalyzeForm(Vector3 hipPos, Vector3 leftFoot, Vector3 rightFoot, BoxingFormTracker.BoxingFormData formData)
+        {
+            var feedback = new AdvancedBoxingFormProcessor.CoachingFeedback();
+            feedback.confidenceLevel = 0.9f; // High confidence in basic analysis
+            
+            // Analyze stance width
+            float stanceWidth = Vector3.Distance(leftFoot, rightFoot);
+            if (Mathf.Abs(stanceWidth - OPTIMAL_STANCE_WIDTH) > STANCE_TOLERANCE)
+            {
+                if (stanceWidth < OPTIMAL_STANCE_WIDTH - STANCE_TOLERANCE)
+                {
+                    feedback.primaryAdvice = "Widen your stance for better balance";
+                    feedback.feedbackType = AdvancedBoxingFormProcessor.CoachingType.StanceCorrection;
+                }
+                else
+                {
+                    feedback.primaryAdvice = "Narrow your stance slightly for better mobility";
+                    feedback.feedbackType = AdvancedBoxingFormProcessor.CoachingType.StanceCorrection;
+                }
+                return feedback;
+            }
+            
+            // Analyze hip rotation
+            if (formData.hipRotation < 10f)
+            {
+                feedback.primaryAdvice = "Rotate your hips more for power generation";
+                feedback.secondaryAdvice = "Drive from your back leg through your hips";
+                feedback.feedbackType = AdvancedBoxingFormProcessor.CoachingType.HipRotation;
+                return feedback;
+            }
+            
+            // Analyze weight distribution
+            if (formData.weightDistribution < 0.3f || formData.weightDistribution > 0.7f)
+            {
+                feedback.primaryAdvice = "Balance your weight between both feet";
+                feedback.secondaryAdvice = "Keep 60% weight on back foot, 40% on front";
+                feedback.feedbackType = AdvancedBoxingFormProcessor.CoachingType.WeightDistribution;
+                return feedback;
+            }
+            
+            // Positive reinforcement for good form
+            if (formData.overallForm >= BoxingFormTracker.FormQuality.Excellent)
+            {
+                feedback.primaryAdvice = "Excellent form! Keep it up!";
+                feedback.confidenceLevel = 1.0f;
+            }
+            else
+            {
+                feedback.primaryAdvice = "Good form - focus on consistency";
+                feedback.confidenceLevel = 0.7f;
+            }
+            
+            return feedback;
         }
     }
 } 

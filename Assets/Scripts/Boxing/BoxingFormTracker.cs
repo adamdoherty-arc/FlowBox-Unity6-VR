@@ -158,7 +158,7 @@ namespace VRBoxingGame.Boxing
         
         private void InitializeFormTracking()
         {
-            Debug.Log("🥊 Initializing Boxing Form Tracker...");
+            AdvancedLoggingSystem.LogInfo(AdvancedLoggingSystem.LogCategory.Boxing, "BoxingFormTracker", "🥊 Initializing Boxing Form Tracker...");
             
             // Find required references
             movementSystem = VR360MovementSystem.Instance;
@@ -173,7 +173,7 @@ namespace VRBoxingGame.Boxing
             // Start form analysis loop
             StartCoroutine(FormAnalysisLoop());
             
-            Debug.Log("✅ Boxing Form Tracker initialized!");
+            AdvancedLoggingSystem.LogInfo(AdvancedLoggingSystem.LogCategory.Boxing, "BoxingFormTracker", "✅ Boxing Form Tracker initialized!");
         }
         
         private void SetupTrackingReferences()
@@ -438,7 +438,7 @@ namespace VRBoxingGame.Boxing
             isTransitioning = true;
             StartCoroutine(StanceTransitionCoroutine());
             
-            Debug.Log($"🥊 Stance transition started: {currentStance} → {newStance}");
+            AdvancedLoggingSystem.LogDebug(AdvancedLoggingSystem.LogCategory.Boxing, "BoxingFormTracker", $"🥊 Stance transition started: {currentStance} → {newStance}");
         }
         
         private IEnumerator StanceTransitionCoroutine()
@@ -467,7 +467,7 @@ namespace VRBoxingGame.Boxing
             isTransitioning = false;
             lastStanceChangeTime = Time.time;
             
-            Debug.Log($"✅ Stance transition complete: {currentStance}");
+            AdvancedLoggingSystem.LogDebug(AdvancedLoggingSystem.LogCategory.Boxing, "BoxingFormTracker", $"✅ Stance transition complete: {currentStance}");
         }
         
         private void AnalyzeFormQuality()
@@ -582,7 +582,9 @@ namespace VRBoxingGame.Boxing
         
         public bool IsStanceOptimal()
         {
-            return currentFormData.isProperStance && !isTransitioning;
+            return currentFormData.stanceQuality >= 0.8f && 
+                   currentFormData.overallForm >= FormQuality.Good &&
+                   !isTransitioning;
         }
         
         public Vector3 GetOptimalStancePosition()
@@ -608,7 +610,7 @@ namespace VRBoxingGame.Boxing
         public void AnalyzeCurrentForm()
         {
             AnalyzeBoxingForm();
-            Debug.Log($"Form Analysis: {currentFormData.overallForm}, Power: {currentFormData.powerMultiplier:F2}x");
+            AdvancedLoggingSystem.LogTrace(AdvancedLoggingSystem.LogCategory.Boxing, "BoxingFormTracker", $"Form Analysis: {currentFormData.overallForm}, Power: {currentFormData.powerMultiplier:F2}x");
         }
         
         private void OnDrawGizmos()
@@ -647,6 +649,17 @@ namespace VRBoxingGame.Boxing
                 Gizmos.color = formColor;
                 Gizmos.DrawWireSphere(playerBody.position + Vector3.up * 2f, 0.2f);
             }
+        }
+        
+        // Public API methods
+        public BoxingFormData GetCurrentFormData()
+        {
+            return currentFormData;
+        }
+        
+        public BoxingStance GetCurrentStance()
+        {
+            return currentStance;
         }
     }
 } 

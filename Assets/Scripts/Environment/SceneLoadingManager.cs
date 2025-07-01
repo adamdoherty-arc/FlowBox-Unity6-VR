@@ -54,16 +54,16 @@ namespace VRBoxingGame.Environment
         private DynamicBackgroundSystem backgroundSystem;
         private AdvancedAudioManager audioManager;
         
-        // Scene descriptions
+        // Enhanced Scene descriptions with environmental storytelling
         private readonly string[] sceneDescriptions = {
-            "Professional boxing arena with crowd atmosphere",
-            "Intense thunderstorm with lightning and rain effects", 
-            "Cyberpunk neon city with holographic elements",
-            "Zero-gravity space station with cosmic views",
-            "Crystal cave with harmonic resonance effects",
-            "Underwater world with marine life and currents",
-            "Desert oasis with heat mirages and sand effects",
-            "Enchanted forest with magical spirits and seasons"
+            "Championship boxing arena where you conduct the crowd's energy through perfect rhythm and skill",
+            "Elemental storm symphony where you harmonize with nature's fury, wielding lightning and thunder", 
+            "Digital underground where you hack reality itself, breaking through neon-soaked data barriers",
+            "Cosmic observatory where celestial bodies dance to your rhythm in the symphony of the spheres",
+            "Ancient crystal caverns where harmonic resonance creates music from the earth's memory",
+            "Abyssal depths where bioluminescent marine life responds to your underwater ballet",
+            "Mystical desert oasis where spirits test your ability to distinguish between illusion and truth",
+            "Living enchanted grove where ancient trees serve as instruments in nature's own orchestra"
         };
         
         private void Awake()
@@ -82,10 +82,10 @@ namespace VRBoxingGame.Environment
         
         private void InitializeSceneManager()
         {
-            // Find required components
-            rainSceneCreator = FindObjectOfType<RainSceneCreator>();
-            backgroundSystem = FindObjectOfType<DynamicBackgroundSystem>();
-            audioManager = FindObjectOfType<AdvancedAudioManager>();
+            // Use cached references for performance
+            rainSceneCreator = CachedReferenceManager.Get<RainSceneCreator>();
+            backgroundSystem = CachedReferenceManager.Get<DynamicBackgroundSystem>();
+            audioManager = CachedReferenceManager.Get<AdvancedAudioManager>();
             
             // Create loading screen if needed
             if (loadingCanvas == null)
@@ -155,6 +155,7 @@ namespace VRBoxingGame.Environment
         
         /// <summary>
         /// Load a specific scene environment with async/await pattern
+        /// UPDATED: Integrates with new SceneAssetManager for proper scene management
         /// </summary>
         public async Task LoadSceneAsync(SceneType sceneType)
         {
@@ -164,6 +165,20 @@ namespace VRBoxingGame.Environment
                 return;
             }
 
+            // Use new SceneAssetManager if available
+            var sceneAssetManager = CachedReferenceManager.Get<SceneAssetManager>();
+            if (sceneAssetManager != null)
+            {
+                bool success = await sceneAssetManager.LoadSceneAsync((int)sceneType);
+                if (success)
+                {
+                    currentScene = sceneType;
+                    OnSceneChanged?.Invoke(sceneType);
+                    return;
+                }
+            }
+
+            // Fallback to legacy scene loading
             await LoadSceneAsyncInternal(sceneType);
         }
 

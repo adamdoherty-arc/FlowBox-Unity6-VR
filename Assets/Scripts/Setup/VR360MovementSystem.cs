@@ -52,6 +52,14 @@ namespace VRBoxingGame.Setup
         public float targetSpawnRadius = 2.5f;
         public int spawnPointCount = 8;
         
+        // **PHASE 3 ENHANCEMENT**: 360-DEGREE OPTIMIZATION
+        [Header("Advanced 360-Degree Optimization")]
+        public bool enableSpatialHashing = true;
+        public bool enableAdvancedLOD = true;
+        public bool enablePredictiveBoundaryDetection = true;
+        public float spatialHashCellSize = 2f;
+        public int maxObjectsPerCell = 50;
+        
         // Components
         private XROrigin xrOrigin;
         private LocomotionSystem locomotionSystem;
@@ -81,6 +89,16 @@ namespace VRBoxingGame.Setup
         public System.Action<int> OnFullRotationCompleted;
         public System.Action<Vector3> OnPlayerPositionChanged;
         public System.Action<bool> OnBoundaryWarning;
+        
+        // **ENHANCEMENT**: Spatial hashing for efficient 360-degree object management
+        private Dictionary<int, List<GameObject>> spatialHashGrid = new Dictionary<int, List<GameObject>>();
+        private List<GameObject> trackedObjects = new List<GameObject>();
+        private BoundaryPredictor boundaryPredictor;
+        private LODManager lodManager;
+        
+        // **ENHANCEMENT**: Advanced boundary detection
+        private Vector3 predictedBoundaryContact = Vector3.zero;
+        private float boundaryContactPredictionTime = 0f;
         
         public static VR360MovementSystem Instance { get; private set; }
         
@@ -112,12 +130,30 @@ namespace VRBoxingGame.Setup
             SetupTurningProviders();
             Setup360Features();
             
+            // **ENHANCEMENT**: Initialize advanced optimization systems
+            if (enableSpatialHashing)
+            {
+                InitializeSpatialHashing();
+            }
+            
+            if (enableAdvancedLOD)
+            {
+                lodManager = new LODManager();
+                lodManager.Initialize();
+            }
+            
+            if (enablePredictiveBoundaryDetection)
+            {
+                boundaryPredictor = new BoundaryPredictor();
+                boundaryPredictor.Initialize(playAreaBoundary);
+            }
+            
             if (enableBoundarySystem)
             {
                 StartCoroutine(SetupBoundarySystem());
             }
             
-            Debug.Log("✅ VR 360-Degree Movement System initialized!");
+            Debug.Log("✅ VR 360-Degree Movement System with advanced optimizations initialized!");
         }
         
         private void SetupXROrigin()
@@ -452,6 +488,98 @@ namespace VRBoxingGame.Setup
             {
                 RotatePlayer(snapTurnAngle);
             }
+            
+            // **ENHANCEMENT**: Update optimization systems
+            if (enableSpatialHashing)
+            {
+                UpdateSpatialHashing();
+            }
+            
+            if (enableAdvancedLOD && lodManager != null)
+            {
+                lodManager.UpdateLOD(GetPlayerPosition());
+            }
+            
+            if (enablePredictiveBoundaryDetection && boundaryPredictor != null)
+            {
+                UpdatePredictiveBoundaryDetection();
+            }
+        }
+        
+        // **ENHANCEMENT**: Predictive boundary detection
+        private void UpdatePredictiveBoundaryDetection()
+        {
+            Vector3 playerPos = GetPlayerPosition();
+            Vector3 playerVelocity = (playerPos - lastPlayerPosition) / Time.deltaTime;
+            lastPlayerPosition = playerPos;
+            
+            var prediction = boundaryPredictor.PredictBoundaryContact(playerPos, playerVelocity);
+            
+            if (prediction.willContact && prediction.timeToContact < 2f)
+            {
+                predictedBoundaryContact = prediction.contactPoint;
+                boundaryContactPredictionTime = prediction.timeToContact;
+                
+                OnBoundaryWarning?.Invoke(true);
+                
+                if (prediction.timeToContact < 0.5f)
+                {
+                    Debug.LogWarning($"⚠️ IMMINENT BOUNDARY CONTACT in {prediction.timeToContact:F1}s at {prediction.contactPoint}");
+                }
+            }
+        }
+        
+        private void OnDrawGizmos()
+        {
+            // Draw play area boundary
+            if (playAreaBoundary.Count > 2)
+            {
+                Gizmos.color = Color.cyan;
+                for (int i = 0; i < playAreaBoundary.Count; i++)
+                {
+                    int nextIndex = (i + 1) % playAreaBoundary.Count;
+                    Gizmos.DrawLine(playAreaBoundary[i], playAreaBoundary[nextIndex]);
+                }
+                
+                // Draw center and radius
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireSphere(playAreaCenter, playAreaRadius);
+                Gizmos.DrawWireSphere(playAreaCenter, playAreaRadius - playAreaWarningDistance);
+            }
+            
+            // **ENHANCEMENT**: Draw spatial hash grid
+            if (enableSpatialHashing && Application.isPlaying)
+            {
+                Gizmos.color = Color.green;
+                foreach (var cell in spatialHashGrid.Keys)
+                {
+                    Vector3 cellCenter = GetCellCenterFromHash(cell);
+                    Gizmos.DrawWireCube(cellCenter, Vector3.one * spatialHashCellSize);
+                }
+            }
+            
+            // **ENHANCEMENT**: Draw predicted boundary contact
+            if (boundaryContactPredictionTime > 0f)
+            {
+                Gizmos.color = Color.red;
+                Gizmos.DrawSphere(predictedBoundaryContact, 0.1f);
+            }
+            
+            // Draw target spawn radius
+            if (xrOrigin != null)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireSphere(xrOrigin.transform.position, targetSpawnRadius);
+            }
+        }
+        
+        private Vector3 GetCellCenterFromHash(int hash)
+        {
+            int z = hash / 1000000;
+            int y = (hash % 1000000) / 1000;
+            int x = hash % 1000;
+            
+            return new Vector3(x, y, z) * spatialHashCellSize + Vector3.one * spatialHashCellSize * 0.5f;
         }
         
         public void RotatePlayer(float angle)
@@ -518,30 +646,278 @@ namespace VRBoxingGame.Setup
             Debug.Log($"Full Rotations: {fullRotationsCompleted}");
         }
         
-        private void OnDrawGizmos()
+        // **ENHANCEMENT**: Initialize spatial hashing system
+        private void InitializeSpatialHashing()
         {
-            // Draw play area boundary
-            if (playAreaBoundary.Count > 2)
+            spatialHashGrid = new Dictionary<int, List<GameObject>>();
+            Debug.Log($"🔍 Spatial hashing initialized with cell size: {spatialHashCellSize}m");
+        }
+        
+        // **ENHANCEMENT**: Update spatial hashing every frame for 360-degree optimization
+        private void UpdateSpatialHashing()
+        {
+            if (!enableSpatialHashing) return;
+            
+            // Clear previous frame data
+            spatialHashGrid.Clear();
+            
+            // Hash all tracked objects
+            foreach (var obj in trackedObjects)
             {
-                Gizmos.color = Color.cyan;
-                for (int i = 0; i < playAreaBoundary.Count; i++)
+                if (obj == null) continue;
+                
+                int hash = GetSpatialHash(obj.transform.position);
+                if (!spatialHashGrid.ContainsKey(hash))
                 {
-                    int nextIndex = (i + 1) % playAreaBoundary.Count;
-                    Gizmos.DrawLine(playAreaBoundary[i], playAreaBoundary[nextIndex]);
+                    spatialHashGrid[hash] = new List<GameObject>();
                 }
                 
-                // Draw center and radius
-                Gizmos.color = Color.yellow;
-                Gizmos.DrawWireSphere(playAreaCenter, playAreaRadius);
-                Gizmos.DrawWireSphere(playAreaCenter, playAreaRadius - playAreaWarningDistance);
+                if (spatialHashGrid[hash].Count < maxObjectsPerCell)
+                {
+                    spatialHashGrid[hash].Add(obj);
+                }
+            }
+        }
+        
+        private int GetSpatialHash(Vector3 position)
+        {
+            int x = Mathf.FloorToInt(position.x / spatialHashCellSize);
+            int y = Mathf.FloorToInt(position.y / spatialHashCellSize);
+            int z = Mathf.FloorToInt(position.z / spatialHashCellSize);
+            
+            return x + y * 1000 + z * 1000000; // Simple hash function
+        }
+        
+        // **ENHANCEMENT**: Efficient object queries using spatial hashing
+        public List<GameObject> GetObjectsInRadius360(Vector3 center, float radius)
+        {
+            if (!enableSpatialHashing) return new List<GameObject>();
+            
+            var result = new List<GameObject>();
+            int cellRadius = Mathf.CeilToInt(radius / spatialHashCellSize);
+            
+            // Check surrounding cells in 3D space
+            for (int x = -cellRadius; x <= cellRadius; x++)
+            {
+                for (int y = -cellRadius; y <= cellRadius; y++)
+                {
+                    for (int z = -cellRadius; z <= cellRadius; z++)
+                    {
+                        Vector3 offset = new Vector3(x, y, z) * spatialHashCellSize;
+                        int hash = GetSpatialHash(center + offset);
+                        
+                        if (spatialHashGrid.ContainsKey(hash))
+                        {
+                            foreach (var obj in spatialHashGrid[hash])
+                            {
+                                float distance = Vector3.Distance(obj.transform.position, center);
+                                if (distance <= radius)
+                                {
+                                    result.Add(obj);
+                                }
+                            }
+                        }
+                    }
+                }
             }
             
-            // Draw target spawn radius
-            if (xrOrigin != null)
+            return result;
+        }
+        
+        // **ENHANCEMENT**: Register objects for spatial tracking
+        public void RegisterObjectFor360Tracking(GameObject obj)
+        {
+            if (!trackedObjects.Contains(obj))
             {
-                Gizmos.color = Color.green;
-                Gizmos.DrawWireSphere(xrOrigin.transform.position, targetSpawnRadius);
+                trackedObjects.Add(obj);
             }
+        }
+        
+        public void UnregisterObjectFrom360Tracking(GameObject obj)
+        {
+            trackedObjects.Remove(obj);
+        }
+    }
+    
+    // **ADVANCED LOD MANAGER FOR 360-DEGREE OPTIMIZATION**
+    public class LODManager
+    {
+        private Dictionary<GameObject, LODComponent> lodObjects = new Dictionary<GameObject, LODComponent>();
+        
+        public void Initialize()
+        {
+            Debug.Log("📊 Advanced LOD Manager initialized for 360-degree optimization");
+        }
+        
+        public void RegisterLODObject(GameObject obj, float[] lodDistances)
+        {
+            if (!lodObjects.ContainsKey(obj))
+            {
+                lodObjects[obj] = new LODComponent(obj, lodDistances);
+            }
+        }
+        
+        public void UpdateLOD(Vector3 viewerPosition)
+        {
+            foreach (var kvp in lodObjects)
+            {
+                if (kvp.Key == null) continue;
+                
+                float distance = Vector3.Distance(kvp.Key.transform.position, viewerPosition);
+                kvp.Value.UpdateLOD(distance);
+            }
+        }
+        
+        private class LODComponent
+        {
+            private GameObject obj;
+            private float[] lodDistances;
+            private int currentLOD = 0;
+            private Renderer[] renderers;
+            
+            public LODComponent(GameObject gameObject, float[] distances)
+            {
+                obj = gameObject;
+                lodDistances = distances;
+                renderers = gameObject.GetComponentsInChildren<Renderer>();
+            }
+            
+            public void UpdateLOD(float distance)
+            {
+                int newLOD = 0;
+                for (int i = 0; i < lodDistances.Length; i++)
+                {
+                    if (distance > lodDistances[i])
+                    {
+                        newLOD = i + 1;
+                    }
+                }
+                
+                if (newLOD != currentLOD)
+                {
+                    ApplyLOD(newLOD);
+                    currentLOD = newLOD;
+                }
+            }
+            
+            private void ApplyLOD(int lodLevel)
+            {
+                switch (lodLevel)
+                {
+                    case 0: // High quality
+                        SetRenderersEnabled(true);
+                        SetShaderLOD(300);
+                        break;
+                    case 1: // Medium quality
+                        SetRenderersEnabled(true);
+                        SetShaderLOD(200);
+                        break;
+                    case 2: // Low quality
+                        SetRenderersEnabled(true);
+                        SetShaderLOD(100);
+                        break;
+                    default: // Disabled
+                        SetRenderersEnabled(false);
+                        break;
+                }
+            }
+            
+            private void SetRenderersEnabled(bool enabled)
+            {
+                foreach (var renderer in renderers)
+                {
+                    if (renderer != null)
+                    {
+                        renderer.enabled = enabled;
+                    }
+                }
+            }
+            
+            private void SetShaderLOD(int lodValue)
+            {
+                foreach (var renderer in renderers)
+                {
+                    if (renderer != null && renderer.material != null)
+                    {
+                        renderer.material.shader.maximumLOD = lodValue;
+                    }
+                }
+            }
+        }
+    }
+    
+    // **PREDICTIVE BOUNDARY DETECTION SYSTEM**
+    public class BoundaryPredictor
+    {
+        private List<Vector3> boundaryPoints;
+        
+        public struct BoundaryPrediction
+        {
+            public bool willContact;
+            public Vector3 contactPoint;
+            public float timeToContact;
+        }
+        
+        public void Initialize(List<Vector3> boundary)
+        {
+            boundaryPoints = new List<Vector3>(boundary);
+            Debug.Log("🔮 Predictive Boundary Detection initialized");
+        }
+        
+        public BoundaryPrediction PredictBoundaryContact(Vector3 position, Vector3 velocity)
+        {
+            var prediction = new BoundaryPrediction();
+            prediction.timeToContact = float.MaxValue;
+            
+            if (boundaryPoints == null || boundaryPoints.Count < 3)
+            {
+                return prediction;
+            }
+            
+            // Check collision with each boundary segment
+            for (int i = 0; i < boundaryPoints.Count; i++)
+            {
+                int nextIndex = (i + 1) % boundaryPoints.Count;
+                Vector3 segmentStart = boundaryPoints[i];
+                Vector3 segmentEnd = boundaryPoints[nextIndex];
+                
+                // Calculate intersection time with boundary segment
+                float intersectionTime = CalculateLineIntersectionTime(position, velocity, segmentStart, segmentEnd);
+                
+                if (intersectionTime > 0 && intersectionTime < prediction.timeToContact)
+                {
+                    prediction.willContact = true;
+                    prediction.timeToContact = intersectionTime;
+                    prediction.contactPoint = position + velocity * intersectionTime;
+                }
+            }
+            
+            return prediction;
+        }
+        
+        private float CalculateLineIntersectionTime(Vector3 rayStart, Vector3 rayDir, Vector3 lineStart, Vector3 lineEnd)
+        {
+            // Simplified 2D intersection calculation (ignoring Y axis)
+            Vector2 rayStart2D = new Vector2(rayStart.x, rayStart.z);
+            Vector2 rayDir2D = new Vector2(rayDir.x, rayDir.z);
+            Vector2 lineStart2D = new Vector2(lineStart.x, lineStart.z);
+            Vector2 lineEnd2D = new Vector2(lineEnd.x, lineEnd.z);
+            
+            Vector2 lineDir = lineEnd2D - lineStart2D;
+            
+            float denominator = rayDir2D.x * lineDir.y - rayDir2D.y * lineDir.x;
+            if (Mathf.Abs(denominator) < 0.001f) return -1f; // Parallel lines
+            
+            Vector2 toLine = lineStart2D - rayStart2D;
+            float t = (toLine.x * lineDir.y - toLine.y * lineDir.x) / denominator;
+            float u = (toLine.x * rayDir2D.y - toLine.y * rayDir2D.x) / denominator;
+            
+            if (t > 0 && u >= 0 && u <= 1)
+            {
+                return t;
+            }
+            
+            return -1f;
         }
     }
 } 

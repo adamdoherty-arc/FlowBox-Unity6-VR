@@ -344,7 +344,7 @@ namespace VRBoxingGame.Performance
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error during performance optimization: {ex.Message}");
+                AdvancedLoggingSystem.LogError(AdvancedLoggingSystem.LogCategory.Performance, "VRPerformanceMonitor", $"Error during performance optimization: {ex.Message}", ex);
             }
             finally
             {
@@ -364,7 +364,7 @@ namespace VRBoxingGame.Performance
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"Error in performance check: {ex.Message}");
+                AdvancedLoggingSystem.LogError(AdvancedLoggingSystem.LogCategory.Performance, "VRPerformanceMonitor", $"Error in performance check: {ex.Message}", ex);
                 return false;
             }
         }

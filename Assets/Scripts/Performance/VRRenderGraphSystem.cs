@@ -596,7 +596,122 @@ namespace VRBoxingGame.Performance
         private void SetShadowQuality(ShadowQuality quality)
         {
             shadowQuality = quality;
+            currentOptimization.shadowQuality = (int)quality;
+            
             QualitySettings.shadows = quality;
+            
+            if (urpAsset != null)
+            {
+                urpAsset.shadowDistance = quality == ShadowQuality.Disable ? 0 : maxShadowDistance;
+            }
+        }
+        
+        // **CRITICAL BUG FIX**: Add missing SetRenderScale method
+        public void SetRenderScale(float scale)
+        {
+            scale = Mathf.Clamp(scale, 0.5f, 1f);
+            renderScale = scale;
+            ApplyRenderScale();
+            
+            Debug.Log($"🎯 VR Render Scale set to: {scale:F2}");
+        }
+        
+        private void ApplyRenderScale()
+        {
+            if (urpAsset != null)
+            {
+                urpAsset.renderScale = renderScale;
+            }
+            
+            // Apply to all VR cameras
+            foreach (var cameraData in vrCameraData)
+            {
+                if (cameraData != null)
+                {
+                    cameraData.renderScale = renderScale;
+                }
+            }
+        }
+        
+        // **CRITICAL BUG FIX**: Add missing RegisterEnvironmentRenderer method
+        public void RegisterEnvironmentRenderer(object environmentRenderer)
+        {
+            if (environmentRenderer != null)
+            {
+                string rendererType = environmentRenderer.GetType().Name;
+                Debug.Log($"🌊 Environment renderer registered: {rendererType}");
+                
+                // Add to registered renderers list for optimization
+                if (!registeredRenderers.Contains(environmentRenderer))
+                {
+                    registeredRenderers.Add(environmentRenderer);
+                }
+            }
+        }
+        
+        private List<object> registeredRenderers = new List<object>();
+        
+        // **ENHANCEMENT**: Add Spatial Hashing for 360-degree optimization
+        private Dictionary<int, List<GameObject>> spatialHashGrid = new Dictionary<int, List<GameObject>>();
+        private float spatialHashCellSize = 5f;
+        
+        public void UpdateSpatialHashing(List<GameObject> objects)
+        {
+            // Clear previous frame data
+            spatialHashGrid.Clear();
+            
+            foreach (var obj in objects)
+            {
+                if (obj == null) continue;
+                
+                int hash = GetSpatialHash(obj.transform.position);
+                if (!spatialHashGrid.ContainsKey(hash))
+                {
+                    spatialHashGrid[hash] = new List<GameObject>();
+                }
+                spatialHashGrid[hash].Add(obj);
+            }
+        }
+        
+        private int GetSpatialHash(Vector3 position)
+        {
+            int x = Mathf.FloorToInt(position.x / spatialHashCellSize);
+            int y = Mathf.FloorToInt(position.y / spatialHashCellSize);
+            int z = Mathf.FloorToInt(position.z / spatialHashCellSize);
+            
+            return x + y * 1000 + z * 1000000; // Simple hash function
+        }
+        
+        public List<GameObject> GetObjectsInRadius(Vector3 center, float radius)
+        {
+            var result = new List<GameObject>();
+            int centerHash = GetSpatialHash(center);
+            
+            // Check surrounding cells
+            for (int x = -1; x <= 1; x++)
+            {
+                for (int y = -1; y <= 1; y++)
+                {
+                    for (int z = -1; z <= 1; z++)
+                    {
+                        Vector3 offset = new Vector3(x, y, z) * spatialHashCellSize;
+                        int hash = GetSpatialHash(center + offset);
+                        
+                        if (spatialHashGrid.ContainsKey(hash))
+                        {
+                            foreach (var obj in spatialHashGrid[hash])
+                            {
+                                if (Vector3.Distance(obj.transform.position, center) <= radius)
+                                {
+                                    result.Add(obj);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return result;
         }
         
         // Public API

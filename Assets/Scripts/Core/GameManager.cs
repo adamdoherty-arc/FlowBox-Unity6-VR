@@ -56,6 +56,18 @@ namespace VRBoxingGame.Core
         public UnityEvent<PlayerAnalytics> OnAnalyticsUpdate;
         public UnityEvent<CoachingInstruction> OnCoachingInstruction;
         
+        [Header("New Game Mode Systems")]
+        public FlowModeSystem flowModeSystem;
+        public TwoHandedStaffSystem staffModeSystem;
+        public ComprehensiveDodgingSystem dodgingSystem;
+        public AICoachVisualSystem aiCoachSystem;
+        
+        [Header("Game Mode Settings")]
+        public GameMode currentGameMode = GameMode.Traditional;
+        public bool enableDodgingIntegration = false;
+        public bool enableAICoaching = true;
+        public float advancedDifficulty = 0.5f;
+        
         // Game state
         public enum GameState
         {
@@ -149,6 +161,15 @@ namespace VRBoxingGame.Core
         public float AdaptiveDifficultyMultiplier => adaptiveDifficultyMultiplier;
         public bool IsMLDrivenDifficultyEnabled => enableMLDrivenDifficulty;
         
+        public enum GameMode
+        {
+            Traditional,
+            FlowMode,
+            StaffMode,
+            DodgingMode,
+            Hybrid
+        }
+        
         private void Awake()
         {
             if (Instance == null)
@@ -177,6 +198,9 @@ namespace VRBoxingGame.Core
             
             // Initialize performance tracking
             InitializePerformanceTracking();
+            
+            // Initialize new game modes
+            InitializeSystems();
             
             Debug.Log("✅ Advanced Game Manager initialized with Unity 6 features!");
         }
@@ -217,14 +241,14 @@ namespace VRBoxingGame.Core
         {
             performancePredictor = new PerformancePredictor();
             playerModel = new PlayerBehaviorModel();
-            Debug.Log("🔮 Predictive Analytics initialized");
+            AdvancedLoggingSystem.LogInfo(AdvancedLoggingSystem.LogCategory.System, "GameManager", "🔮 Predictive Analytics initialized");
         }
         
         private void InitializeCoachingSystems()
         {
             realTimeCoach = new RealTimeCoach();
             realTimeCoach.Initialize(coachingConfidenceThreshold);
-            Debug.Log("🏃‍♂️ Real-Time Coaching initialized");
+            AdvancedLoggingSystem.LogInfo(AdvancedLoggingSystem.LogCategory.System, "GameManager", "🏃‍♂️ Real-Time Coaching initialized");
         }
         
         private void InitializePerformanceTracking()
@@ -248,7 +272,371 @@ namespace VRBoxingGame.Core
                 confidenceLevel = 0f
             };
             
-            Debug.Log("📈 Performance tracking initialized");
+            AdvancedLoggingSystem.LogInfo(AdvancedLoggingSystem.LogCategory.Performance, "GameManager", "📈 Performance tracking initialized");
+        }
+        
+                 private void InitializeSystems()
+         {
+             InitializeBoxingSystems();
+             InitializeAudioSystems();
+             InitializeEnvironmentSystems();
+             InitializeHandTracking();
+             InitializeNewGameModes();
+             ValidateSystemReferences();
+         }
+         
+         private void InitializeBoxingSystems()
+         {
+             if (boxingTargetSystem == null)
+                 boxingTargetSystem = FindObjectOfType<AdvancedTargetSystem>();
+         }
+         
+         private void InitializeAudioSystems()
+         {
+             if (musicReactiveSystem == null)
+                 musicReactiveSystem = FindObjectOfType<MusicReactiveSystem>();
+         }
+         
+         private void InitializeEnvironmentSystems()
+         {
+             if (sceneTransformationSystem == null)
+                 sceneTransformationSystem = FindObjectOfType<SceneTransformationSystem>();
+         }
+         
+         private void InitializeHandTracking()
+         {
+             if (handTrackingManager == null)
+                 handTrackingManager = FindObjectOfType<HandTrackingManager>();
+         }
+         
+         private void ValidateSystemReferences()
+         {
+             // Validate that all critical systems are available
+             if (boxingTargetSystem == null)
+                 Debug.LogWarning("⚠️ Boxing Target System not found!");
+                 
+             if (musicReactiveSystem == null)
+                 Debug.LogWarning("⚠️ Music Reactive System not found!");
+         }
+        
+        private void InitializeNewGameModes()
+        {
+            // Find and initialize new game mode systems
+            if (flowModeSystem == null)
+                flowModeSystem = FindObjectOfType<FlowModeSystem>();
+                
+            if (staffModeSystem == null)
+                staffModeSystem = FindObjectOfType<TwoHandedStaffSystem>();
+                
+            if (dodgingSystem == null)
+                dodgingSystem = FindObjectOfType<ComprehensiveDodgingSystem>();
+                
+            if (aiCoachSystem == null)
+                aiCoachSystem = FindObjectOfType<AICoachVisualSystem>();
+            
+            // Create missing systems
+            if (flowModeSystem == null)
+            {
+                GameObject flowObj = new GameObject("Flow Mode System");
+                flowModeSystem = flowObj.AddComponent<FlowModeSystem>();
+                Debug.Log("🌊 Created Flow Mode System");
+            }
+            
+            if (staffModeSystem == null)
+            {
+                GameObject staffObj = new GameObject("Staff Mode System");
+                staffModeSystem = staffObj.AddComponent<TwoHandedStaffSystem>();
+                Debug.Log("🥢 Created Staff Mode System");
+            }
+            
+            if (dodgingSystem == null)
+            {
+                GameObject dodgeObj = new GameObject("Dodging System");
+                dodgingSystem = dodgeObj.AddComponent<ComprehensiveDodgingSystem>();
+                Debug.Log("🤸 Created Dodging System");
+            }
+            
+            if (aiCoachSystem == null)
+            {
+                GameObject coachObj = new GameObject("AI Coach System");
+                aiCoachSystem = coachObj.AddComponent<AICoachVisualSystem>();
+                Debug.Log("🤖 Created AI Coach System");
+            }
+            
+            // Subscribe to events
+            SubscribeToNewGameModeEvents();
+        }
+        
+        private void SubscribeToNewGameModeEvents()
+        {
+            // Flow Mode events
+            if (flowModeSystem != null)
+            {
+                // Subscribe to flow mode events if available
+            }
+            
+            // Staff Mode events
+            if (staffModeSystem != null)
+            {
+                // Subscribe to staff mode events if available
+            }
+            
+            // Dodging events
+            if (dodgingSystem != null)
+            {
+                dodgingSystem.OnDodgeSuccess.AddListener(OnDodgeSuccess);
+                dodgingSystem.OnDodgeFail.AddListener(OnDodgeFail);
+            }
+            
+            // AI Coach events
+            if (aiCoachSystem != null)
+            {
+                // Subscribe to AI coach events if available
+            }
+        }
+        
+        public void StartFlowMode()
+        {
+            if (flowModeSystem == null)
+            {
+                Debug.LogError("❌ Flow Mode System not available!");
+                return;
+            }
+            
+            StopAllGameModes();
+            currentGameMode = GameMode.FlowMode;
+            
+            flowModeSystem.StartFlowMode();
+            
+            // Enable dodging integration if selected
+            if (enableDodgingIntegration && dodgingSystem != null)
+            {
+                dodgingSystem.IntegrateWithFlowMode(true);
+            }
+            
+            // Enable AI coaching if selected
+            if (enableAICoaching && aiCoachSystem != null)
+            {
+                aiCoachSystem.ActivateAICoach();
+            }
+            
+            Debug.Log("🌊 Game Manager: Flow Mode started");
+        }
+        
+        public void StartStaffMode()
+        {
+            if (staffModeSystem == null)
+            {
+                Debug.LogError("❌ Staff Mode System not available!");
+                return;
+            }
+            
+            StopAllGameModes();
+            currentGameMode = GameMode.StaffMode;
+            
+            staffModeSystem.StartStaffMode();
+            
+            // Enable dodging integration if selected
+            if (enableDodgingIntegration && dodgingSystem != null)
+            {
+                dodgingSystem.IntegrateWithStaffMode(true);
+            }
+            
+            // Enable AI coaching if selected
+            if (enableAICoaching && aiCoachSystem != null)
+            {
+                aiCoachSystem.ActivateAICoach();
+            }
+            
+            Debug.Log("🥢 Game Manager: Staff Mode started");
+        }
+        
+        public void StartDodgingMode()
+        {
+            if (dodgingSystem == null)
+            {
+                Debug.LogError("❌ Dodging System not available!");
+                return;
+            }
+            
+            StopAllGameModes();
+            currentGameMode = GameMode.DodgingMode;
+            
+            dodgingSystem.StartDodgingMode();
+            
+            // Enable AI coaching if selected
+            if (enableAICoaching && aiCoachSystem != null)
+            {
+                aiCoachSystem.ActivateAICoach();
+            }
+            
+            Debug.Log("🤸 Game Manager: Dodging Mode started");
+        }
+        
+        public void StartTraditionalMode()
+        {
+            StopAllGameModes();
+            currentGameMode = GameMode.Traditional;
+            
+            // Start traditional boxing systems
+            if (boxingTargetSystem != null)
+            {
+                boxingTargetSystem.enabled = true;
+            }
+            
+            // Enable AI coaching if selected
+            if (enableAICoaching && aiCoachSystem != null)
+            {
+                aiCoachSystem.ActivateAICoach();
+            }
+            
+            Debug.Log("🥊 Game Manager: Traditional Mode started");
+        }
+        
+        public void StopAllGameModes()
+        {
+            // Stop all active game modes
+            if (flowModeSystem != null && flowModeSystem.IsFlowModeActive)
+            {
+                flowModeSystem.StopFlowMode();
+            }
+            
+            if (staffModeSystem != null && staffModeSystem.IsStaffModeActive)
+            {
+                staffModeSystem.StopStaffMode();
+            }
+            
+            if (dodgingSystem != null && dodgingSystem.IsDodgingModeActive)
+            {
+                dodgingSystem.StopDodgingMode();
+            }
+            
+            // Disable dodging integration
+            if (dodgingSystem != null)
+            {
+                dodgingSystem.IntegrateWithFlowMode(false);
+                dodgingSystem.IntegrateWithStaffMode(false);
+            }
+            
+            // Stop AI coaching if not persistent
+            if (aiCoachSystem != null && !enableAICoaching)
+            {
+                aiCoachSystem.DeactivateAICoach();
+            }
+        }
+        
+        public void SetAdvancedDifficulty(float difficulty)
+        {
+            advancedDifficulty = Mathf.Clamp01(difficulty);
+            
+            // Apply to all systems
+            flowModeSystem?.SetDifficulty(advancedDifficulty);
+            staffModeSystem?.SetDifficulty(advancedDifficulty);
+            dodgingSystem?.SetDifficulty(advancedDifficulty);
+            
+            Debug.Log($"🎯 Advanced difficulty set to: {advancedDifficulty:F2}");
+        }
+        
+        public void EnableDodgingIntegration(bool enable)
+        {
+            enableDodgingIntegration = enable;
+            
+            if (dodgingSystem != null)
+            {
+                switch (currentGameMode)
+                {
+                    case GameMode.FlowMode:
+                        dodgingSystem.IntegrateWithFlowMode(enable);
+                        break;
+                    case GameMode.StaffMode:
+                        dodgingSystem.IntegrateWithStaffMode(enable);
+                        break;
+                }
+            }
+            
+            Debug.Log($"🤸 Dodging integration: {(enable ? "ENABLED" : "DISABLED")}");
+        }
+        
+        public void EnableAICoaching(bool enable)
+        {
+            enableAICoaching = enable;
+            
+            if (aiCoachSystem != null)
+            {
+                if (enable)
+                {
+                    aiCoachSystem.ActivateAICoach();
+                }
+                else
+                {
+                    aiCoachSystem.DeactivateAICoach();
+                }
+            }
+            
+            Debug.Log($"🤖 AI Coaching: {(enable ? "ENABLED" : "DISABLED")}");
+        }
+        
+        // Event handlers for new game modes
+        private void OnDodgeSuccess(ComprehensiveDodgingSystem.DodgeData dodgeData)
+        {
+            // Add score for successful dodge
+            AddScore(dodgeData.score, dodgeData.isPerfectDodge);
+            
+            // Update statistics
+            gameplayStats.AddStat("dodges_successful", 1);
+            gameplayStats.AddStat("total_dodge_accuracy", dodgeData.accuracy);
+            
+            Debug.Log($"✅ Dodge success! Score: {dodgeData.score}, Accuracy: {dodgeData.accuracy:F2}");
+        }
+        
+        private void OnDodgeFail(ComprehensiveDodgingSystem.DodgeData dodgeData)
+        {
+            // Update statistics
+            gameplayStats.AddStat("dodges_failed", 1);
+            
+            Debug.Log($"❌ Dodge failed! Type: {dodgeData.dodgeType}");
+        }
+        
+        // Enhanced game statistics
+        public Dictionary<string, object> GetAdvancedGameStats()
+        {
+            var stats = new Dictionary<string, object>();
+            
+            // Base stats
+            stats["current_game_mode"] = currentGameMode.ToString();
+            stats["advanced_difficulty"] = advancedDifficulty;
+            stats["dodging_integration"] = enableDodgingIntegration;
+            stats["ai_coaching"] = enableAICoaching;
+            
+            // Mode-specific stats
+            if (flowModeSystem != null)
+            {
+                var flowStats = flowModeSystem.GetFlowModeStats();
+                foreach (var kvp in flowStats)
+                {
+                    stats[$"flow_{kvp.Key}"] = kvp.Value;
+                }
+            }
+            
+            if (staffModeSystem != null)
+            {
+                var staffStats = staffModeSystem.GetStaffModeStats();
+                foreach (var kvp in staffStats)
+                {
+                    stats[$"staff_{kvp.Key}"] = kvp.Value;
+                }
+            }
+            
+            if (dodgingSystem != null)
+            {
+                var dodgeStats = dodgingSystem.GetDodgingStats();
+                foreach (var kvp in dodgeStats)
+                {
+                    stats[$"dodge_{kvp.Key}"] = kvp.Value;
+                }
+            }
+            
+            return stats;
         }
         
         private void Update()

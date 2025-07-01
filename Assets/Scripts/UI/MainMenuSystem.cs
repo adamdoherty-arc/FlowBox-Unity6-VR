@@ -88,14 +88,14 @@ namespace VRBoxingGame.UI
         };
         
         private string[] sceneDescriptions = {
-            "Classic VR boxing arena with customizable backgrounds",
-            "Intense rain storm with lightning and thunder effects",
-            "Cyberpunk cityscape with neon lights and rain",
-            "Zero gravity space station with stellar views",
-            "Mystical crystal cave with glowing formations",
-            "Deep ocean environment with marine life",
-            "Peaceful desert with sand dunes and sunset",
-            "Serene forest clearing with ambient nature sounds"
+            "Step into the champion's arena where your rhythm conducts the crowd's roar and spotlight's dance",
+            "Become the storm conductor, harmonizing with nature's most violent and beautiful electrical symphony",
+            "Enter the digital underground as a data runner, hacking through neon-soaked cyberpunk reality",
+            "Command a cosmic observatory where planets and stars orbit to the rhythm of your perfect timing",
+            "Discover crystal caverns where each formation sings with pure harmonic resonance and ancient memory",
+            "Dive into abyssal depths where bioluminescent creatures create nature's own responsive light show",
+            "Journey to a mirage oasis where desert spirits challenge you to separate illusion from truth",
+            "Enter an enchanted grove where ancient trees become living instruments in a magical symphony"
         };
         
         // Singleton
