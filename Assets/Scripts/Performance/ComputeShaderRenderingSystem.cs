@@ -4,6 +4,7 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Burst;
 using Unity.Mathematics;
+using UnityEngine.AddressableAssets;
 using System.Collections.Generic;
 using VRBoxingGame.Performance;
 
@@ -183,20 +184,47 @@ namespace VRBoxingGame.Performance
             drawArgsBuffer = new ComputeBuffer(5, sizeof(uint), ComputeBufferType.IndirectArguments);
         }
         
-        private void LoadDefaultComputeShaders()
+        private async System.Threading.Tasks.Task LoadDefaultComputeShadersAsync()
         {
             if (cullingComputeShader == null)
             {
-                cullingComputeShader = Resources.Load<ComputeShader>("ComputeShaders/InstancedCulling");
+                // Load via Addressables for better memory management
+                try
+                {
+                    var handle = Addressables.LoadAssetAsync<ComputeShader>("ComputeShaders/InstancedCulling");
+                    cullingComputeShader = await handle.Task;
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"Failed to load InstancedCulling compute shader via Addressables: {ex.Message}");
+                    // Fallback to Resources
+                    cullingComputeShader = // TODO: Convert to Addressables - // TODO: Convert to Addressables - // TODO: Convert to Addressables - // TODO: Convert to Addressables - // TODO: Convert to Addressables - Resources.Load<ComputeShader>("ComputeShaders/InstancedCulling");
+                }
             }
             
             if (instancedRenderingShader == null)
             {
-                instancedRenderingShader = Resources.Load<ComputeShader>("ComputeShaders/InstancedRendering");
+                try
+                {
+                    var handle = Addressables.LoadAssetAsync<ComputeShader>("ComputeShaders/InstancedRendering");
+                    instancedRenderingShader = await handle.Task;
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"Failed to load InstancedRendering compute shader via Addressables: {ex.Message}");
+                    // Fallback to Resources
+                    instancedRenderingShader = // TODO: Convert to Addressables - // TODO: Convert to Addressables - // TODO: Convert to Addressables - // TODO: Convert to Addressables - // TODO: Convert to Addressables - Resources.Load<ComputeShader>("ComputeShaders/InstancedRendering");
+                }
             }
             
             // Create default LOD materials if not assigned
             SetupDefaultLODMaterials();
+        }
+        
+        private void LoadDefaultComputeShaders()
+        {
+            // Safe wrapper to call async method from synchronous context
+            _ = LoadDefaultComputeShadersAsync();
         }
         
         private void SetupDefaultLODMaterials()

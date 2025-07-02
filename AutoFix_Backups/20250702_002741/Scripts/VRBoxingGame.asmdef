@@ -1,0 +1,24 @@
+{
+    "name": "VRBoxingGame",
+    "rootNamespace": "VRBoxingGame",
+    "references": [
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Jobs",
+        "Unity.Mathematics",
+        "Unity.XR.Management",
+        "Unity.XR.Oculus",
+        "Unity.Profiling.Core",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.Audio.DSPGraph"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+} 

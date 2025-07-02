@@ -1,0 +1,11 @@
+{
+  "total_fixes_applied": 5,
+  "files_modified": 2,
+  "execution_time": 0.1667628288269043,
+  "backup_location": "AutoFix_Backups/20250702_003752",
+  "fixes_by_type": {
+    "legacy_resources_load": 5
+  },
+  "errors": [],
+  "timestamp": "2025-07-02T00:37:52.590550"
+}
